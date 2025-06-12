@@ -30,7 +30,6 @@ public class GameController implements KeyListener, ActionListener {
         int key = e.getKeyCode();
         if (model.player1Dead && (model.player2Dead || model.isSinglePlayer)) return;
 
-        // Player 1 movement & skill
         if (!model.player1Dead) {
             switch (key) {
                 case KeyEvent.VK_W -> model.movePlayer1(-1, 0);
@@ -41,7 +40,6 @@ public class GameController implements KeyListener, ActionListener {
             if (key == model.timeStopKey) model.activateTimeStop();
         }
 
-        // Player 2 movement & skill
         if (!model.player2Dead && !model.isSinglePlayer && !model.timeStopActive) {
             switch (key) {
                 case KeyEvent.VK_UP -> model.movePlayer2(-1, 0);
