@@ -38,7 +38,6 @@ public class Main {
 
         boolean isSinglePlayer = (choice == 0);
 
-        // === Tambahan: Login dan koneksi database ===
         DatabaseManager db = new DatabaseManager();
         db.connect();
 
@@ -66,7 +65,6 @@ public class Main {
             }
         }
 
-        // === Buat model, view, controller dengan parameter baru ===
         GameModel model = new GameModel(isSinglePlayer, timeStopKey, areaClearKey, player1Id, player2Id, db);
         GameView view = new GameView(model);
         new GameController(model, view, delay);

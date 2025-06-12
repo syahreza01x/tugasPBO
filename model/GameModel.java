@@ -37,7 +37,6 @@ public class GameModel {
     public static final int DEFAULT_TIME_STOP_KEY = KeyEvent.VK_E;
     public static final int DEFAULT_AREA_CLEAR_KEY = KeyEvent.VK_END;
 
-    // === Tambahan untuk database ===
     private int player1Id, player2Id;
     private DatabaseManager db;
 
@@ -51,7 +50,6 @@ public class GameModel {
     public List<Drop> drops = new ArrayList<>();
     private final Random rand = new Random();
 
-    // === Konstruktor baru dengan database dan playerId ===
     public GameModel(boolean isSinglePlayer, int timeStopKey, int areaClearKey, int player1Id, int player2Id, DatabaseManager db) {
         this.isSinglePlayer = isSinglePlayer;
         this.timeStopKey = timeStopKey;
@@ -60,7 +58,6 @@ public class GameModel {
         this.player2Id = player2Id;
         this.db = db;
         resetGame();
-        // Ambil high score dari DB
         highScore1 = db.getHighScore(player1Id);
         if (!isSinglePlayer) highScore2 = db.getHighScore(player2Id);
     }
@@ -84,7 +81,6 @@ public class GameModel {
         long now = System.currentTimeMillis();
         boolean timeStopWindow = timeStopActive && (now - timeStopStart < 5000);
 
-        // Hapus karakter lama
         for (int i = 0; i < ROWS; i++) {
             for (int j = 0; j < COLS; j++) {
                 if (arena[i][j] == '♥' || arena[i][j] == '♦') {
@@ -93,7 +89,6 @@ public class GameModel {
             }
         }
 
-        // Power-up durations
         if (shield1 && now - shield1Start > 5000) shield1 = false;
         if (shield2 && now - shield2Start > 5000) shield2 = false;
         if (speed1 && now - speed1Start > 5000) speed1 = false;
@@ -108,7 +103,6 @@ public class GameModel {
         showAreaClearEffect = areaClearActive && (now - areaClearStart <= 5000);
 
         if (timeStopWindow) {
-            // Player 2 frozen
         } else {
             if (timeStopActive) {
                 timeStopActive = false;
@@ -120,13 +114,12 @@ public class GameModel {
             updateDrops();
         }
 
-        // Collision & game over
         if (!player1Dead && arena[heartX1][heartY1] == '*' && !shield1) {
             lives1--;
             if (lives1 <= 0) {
                 player1Dead = true;
                 if (score1 > highScore1) {
-                    db.deleteScoresByPlayer(player1Id); // Hapus skor lama
+                    db.deleteScoresByPlayer(player1Id); 
                     highScore1 = score1;
                     db.insertScore(player1Id, score1);
                 } else {
@@ -140,7 +133,7 @@ public class GameModel {
             if (lives2 <= 0) {
                 player2Dead = true;
                 if (score2 > highScore2) {
-                    db.deleteScoresByPlayer(player2Id); // Hapus skor lama
+                    db.deleteScoresByPlayer(player2Id); 
                     highScore2 = score2;
                     db.insertScore(player2Id, score2);
                 } else {
@@ -200,7 +193,6 @@ public class GameModel {
         drops.removeAll(toRemove);
     }
 
-    // === Log power-up ke database ===
     void applyDropEffect(int player, int type) {
         if (player == 1) {
             switch (type) {
@@ -210,7 +202,7 @@ public class GameModel {
                 case 4 -> { if (!isSinglePlayer && lives2 > 1) lives2--; else player2Dead = true; lives1++; }
                 case 5 -> { skillLock2 = true; skillLock2Start = System.currentTimeMillis(); }
             }
-            db.logPowerup(player1Id, String.valueOf(type)); // Ganti ke powerup_id jika sudah migrasi DB
+            db.logPowerup(player1Id, String.valueOf(type)); 
         } else {
             switch (type) {
                 case 1 -> { if (lives2 < 5) lives2++; }
@@ -219,8 +211,7 @@ public class GameModel {
                 case 4 -> { if (lives1 > 1) lives1--; else player1Dead = true; lives2++; }
                 case 5 -> { skillLock1 = true; skillLock1Start = System.currentTimeMillis(); }
             }
-            db.logPowerup(player2Id, String.valueOf(type)); // Ganti ke powerup_id jika sudah migrasi DB
-        }
+            db.logPowerup(player2Id, String.valueOf(type));
     }
 
     public boolean isTimeStopReady() {

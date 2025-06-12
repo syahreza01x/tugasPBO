@@ -13,7 +13,6 @@ public class DatabaseManager {
 
     public void createTables() {
         try (Statement stmt = conn.createStatement()) {
-            // Sesuaikan dengan struktur tabel MySQL kamu
             stmt.execute("CREATE TABLE IF NOT EXISTS players (id INT PRIMARY KEY AUTO_INCREMENT, username VARCHAR(50), password VARCHAR(255), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
             stmt.execute("CREATE TABLE IF NOT EXISTS scores (id INT PRIMARY KEY AUTO_INCREMENT, player_id INT, score INT, match_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
             stmt.execute("CREATE TABLE IF NOT EXISTS powerups_log (id INT PRIMARY KEY AUTO_INCREMENT, player_id INT, powerup_type VARCHAR(50), collected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
