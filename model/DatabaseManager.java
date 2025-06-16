@@ -11,11 +11,50 @@ public class DatabaseManager {
         } catch (SQLException e) { e.printStackTrace(); }
     }
 
+    public int getPlayerSkill(int playerId) {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT skill FROM players WHERE id=?")) {
+            ps.setInt(1, playerId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt("skill");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0; // default skill
+    }
+
+    public int getSkillCooldown(int skillId) {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT cooldown FROM skills WHERE id=?")) {
+            ps.setInt(1, skillId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt("cooldown");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 15000;
+    }
+
+    // Tambahan: Mendapatkan nama file sound skill dari tabel skills
+    public String getSkillSound(int skillId) {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT sounds FROM skills WHERE id=?")) {
+            ps.setInt(1, skillId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getString("sounds");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "skill1.wav"; // fallback
+    }
+
     public void createTables() {
         try (Statement stmt = conn.createStatement()) {
             stmt.execute("CREATE TABLE IF NOT EXISTS players (id INT PRIMARY KEY AUTO_INCREMENT, username VARCHAR(50), password VARCHAR(255), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
             stmt.execute("CREATE TABLE IF NOT EXISTS scores (id INT PRIMARY KEY AUTO_INCREMENT, player_id INT, score INT, match_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
             stmt.execute("CREATE TABLE IF NOT EXISTS powerups_log (id INT PRIMARY KEY AUTO_INCREMENT, player_id INT, powerup_type VARCHAR(50), collected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+            // Tambahkan tabel skills jika belum ada
+            stmt.execute("CREATE TABLE IF NOT EXISTS skills (id INT PRIMARY KEY AUTO_INCREMENT, nama_skill VARCHAR(50), penjelasan VARCHAR(255), cooldown INT, sounds VARCHAR(100))");
         } catch (SQLException e) { e.printStackTrace(); }
     }
 
@@ -56,12 +95,12 @@ public class DatabaseManager {
     }
 
     public void deleteScoresByPlayer(int playerId) {
-    try (PreparedStatement ps = conn.prepareStatement(
-            "DELETE FROM scores WHERE player_id=?")) {
-        ps.setInt(1, playerId);
-        ps.executeUpdate();
-    } catch (SQLException e) {
-        e.printStackTrace();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM scores WHERE player_id=?")) {
+            ps.setInt(1, playerId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 

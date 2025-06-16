@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Waktu pembuatan: 12 Jun 2025 pada 11.02
+-- Waktu pembuatan: 16 Jun 2025 pada 13.01
 -- Versi server: 8.1.0
 -- Versi PHP: 8.4.7
 
@@ -31,16 +31,19 @@ CREATE TABLE `players` (
   `id` int NOT NULL,
   `username` varchar(50) NOT NULL,
   `password` varchar(255) DEFAULT '',
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `skill` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data untuk tabel `players`
 --
 
-INSERT INTO `players` (`id`, `username`, `password`, `created_at`) VALUES
-(1, 'Reza', '123', '2025-06-12 10:31:50'),
-(2, 'Neza', '789', '2025-06-12 10:31:50');
+INSERT INTO `players` (`id`, `username`, `password`, `created_at`, `skill`) VALUES
+(1, 'Reza', '123', '2025-06-12 10:31:50', 1),
+(2, 'Ferdi', '789', '2025-06-12 10:31:50', 2),
+(5, 'Puci', '123', '2025-06-16 12:28:22', 3),
+(6, 'Fadilah', '789', '2025-06-16 12:28:22', 4);
 
 -- --------------------------------------------------------
 
@@ -85,7 +88,11 @@ CREATE TABLE `powerups_log` (
 
 INSERT INTO `powerups_log` (`id`, `player_id`, `powerup_type`, `collected_at`, `powerup_id`) VALUES
 (2, 1, '2', '2025-06-12 11:01:32', NULL),
-(3, 1, '3', '2025-06-12 11:01:38', NULL);
+(3, 1, '3', '2025-06-12 11:01:38', NULL),
+(4, 2, '5', '2025-06-16 11:30:56', NULL),
+(5, 1, '1', '2025-06-16 11:44:16', NULL),
+(6, 1, '3', '2025-06-16 12:14:06', NULL),
+(7, 1, '3', '2025-06-16 12:49:09', NULL);
 
 -- --------------------------------------------------------
 
@@ -105,8 +112,48 @@ CREATE TABLE `scores` (
 --
 
 INSERT INTO `scores` (`id`, `player_id`, `score`, `match_date`) VALUES
-(3, 2, 176, '2025-06-12 10:52:39'),
-(6, 1, 664, '2025-06-12 11:01:50');
+(6, 1, 664, '2025-06-12 11:01:50'),
+(12, 1, 98, '2025-06-16 11:44:59'),
+(14, 1, 71, '2025-06-16 11:54:50'),
+(16, 1, 90, '2025-06-16 11:55:33'),
+(18, 1, 125, '2025-06-16 12:05:18'),
+(20, 1, 147, '2025-06-16 12:13:41'),
+(21, 2, 185, '2025-06-16 12:13:52'),
+(22, 1, 145, '2025-06-16 12:14:08'),
+(24, 1, 81, '2025-06-16 12:34:24'),
+(25, 1, 64, '2025-06-16 12:34:50'),
+(26, 5, 172, '2025-06-16 12:42:08'),
+(27, 1, 130, '2025-06-16 12:42:15'),
+(28, 1, 235, '2025-06-16 12:49:13'),
+(29, 2, 132, '2025-06-16 12:54:15'),
+(30, 2, 95, '2025-06-16 12:56:32'),
+(31, 6, 84, '2025-06-16 12:59:43'),
+(32, 1, 288, '2025-06-16 13:00:00'),
+(33, 1, 125, '2025-06-16 13:00:16');
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `skills`
+--
+
+CREATE TABLE `skills` (
+  `id` int NOT NULL,
+  `nama_skill` varchar(50) DEFAULT NULL,
+  `penjelasan` text,
+  `cooldown` int DEFAULT NULL,
+  `sounds` varchar(100) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data untuk tabel `skills`
+--
+
+INSERT INTO `skills` (`id`, `nama_skill`, `penjelasan`, `cooldown`, `sounds`) VALUES
+(1, 'The World', 'Menghentikan waktu sementara', 15000, 'skill1.wav'),
+(2, 'Star Platinum', 'Menghapus peluru di sekitar karakter', 20000, 'skill2.wav'),
+(3, 'Made in Heaven', 'Menghentikan waktu 10 detik, skor lawan perlahan turun', 30000, 'skill3.wav'),
+(4, 'Crazy Diamond', 'Menambah 1 health ke player', 35000, 'skill4.wav');
 
 --
 -- Indexes for dumped tables
@@ -117,7 +164,8 @@ INSERT INTO `scores` (`id`, `player_id`, `score`, `match_date`) VALUES
 --
 ALTER TABLE `players`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `username` (`username`);
+  ADD UNIQUE KEY `username` (`username`),
+  ADD KEY `fk_skill` (`skill`);
 
 --
 -- Indeks untuk tabel `powerup`
@@ -141,6 +189,12 @@ ALTER TABLE `scores`
   ADD KEY `player_id` (`player_id`);
 
 --
+-- Indeks untuk tabel `skills`
+--
+ALTER TABLE `skills`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- AUTO_INCREMENT untuk tabel yang dibuang
 --
 
@@ -148,7 +202,7 @@ ALTER TABLE `scores`
 -- AUTO_INCREMENT untuk tabel `players`
 --
 ALTER TABLE `players`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT untuk tabel `powerup`
@@ -160,17 +214,29 @@ ALTER TABLE `powerup`
 -- AUTO_INCREMENT untuk tabel `powerups_log`
 --
 ALTER TABLE `powerups_log`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT untuk tabel `scores`
 --
 ALTER TABLE `scores`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+
+--
+-- AUTO_INCREMENT untuk tabel `skills`
+--
+ALTER TABLE `skills`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)
 --
+
+--
+-- Ketidakleluasaan untuk tabel `players`
+--
+ALTER TABLE `players`
+  ADD CONSTRAINT `fk_skill` FOREIGN KEY (`skill`) REFERENCES `skills` (`id`);
 
 --
 -- Ketidakleluasaan untuk tabel `powerups_log`
