@@ -1,6 +1,7 @@
 package model;
 
 import java.sql.*;
+import java.util.*;
 
 public class DatabaseManager {
     private Connection conn;
@@ -9,6 +10,89 @@ public class DatabaseManager {
         try {
             conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/game_db", "root", "");
         } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    public static class Player {
+        public int id;
+        public String username;
+        public int skillId;
+        public Player(int id, String username, int skillId) {
+            this.id = id;
+            this.username = username;
+            this.skillId = skillId;
+        }
+    }
+
+    public static class Skill {
+        public int id;
+        public String namaSkill;
+        public Skill(int id, String namaSkill) {
+            this.id = id;
+            this.namaSkill = namaSkill;
+        }
+    }
+
+    public boolean isUsernameExist(String username) {
+        try (PreparedStatement ps = conn.prepareStatement("SELECT id FROM players WHERE username=?")) {
+            ps.setString(1, username);
+            ResultSet rs = ps.executeQuery();
+            return rs.next();
+        } catch (SQLException e) { e.printStackTrace(); }
+        return false;
+    }
+
+    public void updatePlayer(int playerId, String username, int skillId) {
+    try (PreparedStatement ps = conn.prepareStatement(
+            "UPDATE players SET username=?, skill=? WHERE id=?")) {
+        ps.setString(1, username);
+        ps.setInt(2, skillId);
+        ps.setInt(3, playerId);
+        ps.executeUpdate();
+        } catch (SQLException e) {
+        e.printStackTrace();
+        }
+    }
+
+    public void deletePlayer(int playerId) {
+    try (PreparedStatement ps = conn.prepareStatement(
+            "DELETE FROM players WHERE id=?")) {
+        ps.setInt(1, playerId);
+        ps.executeUpdate();
+        } catch (SQLException e) {
+        e.printStackTrace();
+        }
+    }
+
+    public void registerPlayer(String username, String password, int skillId) {
+        try (PreparedStatement ps = conn.prepareStatement(
+            "INSERT INTO players(username, password, skill) VALUES (?, ?, ?)")) {
+            ps.setString(1, username);
+            ps.setString(2, password);
+            ps.setInt(3, skillId);
+            ps.executeUpdate();
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    public List<Player> getAllPlayers() {
+        List<Player> list = new ArrayList<>();
+        try (Statement st = conn.createStatement()) {
+            ResultSet rs = st.executeQuery("SELECT id, username, skill FROM players");
+            while (rs.next()) {
+                list.add(new Player(rs.getInt("id"), rs.getString("username"), rs.getInt("skill")));
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return list;
+    }
+
+    public List<Skill> getAllSkills() {
+        List<Skill> list = new ArrayList<>();
+        try (Statement st = conn.createStatement()) {
+            ResultSet rs = st.executeQuery("SELECT id, nama_skill FROM skills");
+            while (rs.next()) {
+                list.add(new Skill(rs.getInt("id"), rs.getString("nama_skill")));
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return list;
     }
 
     public int getPlayerSkill(int playerId) {
@@ -47,15 +131,6 @@ public class DatabaseManager {
         return "skill1.wav";
     }
 
-    public void createTables() {
-        try (Statement stmt = conn.createStatement()) {
-            stmt.execute("CREATE TABLE IF NOT EXISTS players (id INT PRIMARY KEY AUTO_INCREMENT, username VARCHAR(50), password VARCHAR(255), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
-            stmt.execute("CREATE TABLE IF NOT EXISTS scores (id INT PRIMARY KEY AUTO_INCREMENT, player_id INT, score INT, match_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
-            stmt.execute("CREATE TABLE IF NOT EXISTS powerups_log (id INT PRIMARY KEY AUTO_INCREMENT, player_id INT, powerup_type VARCHAR(50), collected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
-            stmt.execute("CREATE TABLE IF NOT EXISTS skills (id INT PRIMARY KEY AUTO_INCREMENT, nama_skill VARCHAR(50), penjelasan VARCHAR(255), cooldown INT, sounds VARCHAR(100))");
-        } catch (SQLException e) { e.printStackTrace(); }
-    }
-
     public void insertScore(int playerId, int score) {
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO scores(player_id, score, match_date) VALUES (?, ?, NOW())")) {
@@ -73,19 +148,6 @@ public class DatabaseManager {
             deleteScoresByPlayer(playerId);
             insertScore(playerId, score);
         }
-    }
-
-    public int login(String username, String password) {
-        try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT id FROM players WHERE username=? AND password=?")) {
-            ps.setString(1, username);
-            ps.setString(2, password);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) return rs.getInt("id");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return -1;
     }
 
     public int getHighScore(int playerId) {
