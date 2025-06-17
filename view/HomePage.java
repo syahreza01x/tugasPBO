@@ -22,6 +22,9 @@ public class HomePage extends JPanel {
     private PlayerTableModel tableModel;
     private JTable table;
 
+    private HighScoreTableModel highScoreModel;
+    private JTable highScoreTable;
+
     public interface PlayListener {
         void onPlay(List<Integer> playerIds, List<String> usernames);
     }
@@ -37,6 +40,7 @@ public class HomePage extends JPanel {
         title.setFont(new Font("Arial", Font.BOLD, 30));
         add(title, BorderLayout.NORTH);
 
+        // --- KIRI: Data Player ---
         tableModel = new PlayerTableModel();
         table = new JTable(tableModel);
 
@@ -75,8 +79,7 @@ public class HomePage extends JPanel {
         });
 
         JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setPreferredSize(new Dimension(500, 350));
-        add(scrollPane, BorderLayout.CENTER);
+        scrollPane.setPreferredSize(new Dimension(400, 350));
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
         registerButton.setPreferredSize(new Dimension(100, 30));
@@ -91,12 +94,48 @@ public class HomePage extends JPanel {
         buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
         buttonPanel.add(playButton);
-        add(buttonPanel, BorderLayout.SOUTH);
 
+        JPanel leftPanel = new JPanel();
+        leftPanel.setLayout(new BorderLayout(10, 10));
+        leftPanel.add(scrollPane, BorderLayout.CENTER);
+        leftPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        // --- KANAN: Top 5 High Score ---
+        highScoreModel = new HighScoreTableModel();
+        highScoreTable = new JTable(highScoreModel);
+        highScoreTable.setRowHeight(28);
+        highScoreTable.setFont(new Font("Arial", Font.PLAIN, 14));
+        highScoreTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
+        highScoreTable.getColumnModel().getColumn(0).setMaxWidth(50);
+
+        JScrollPane highScoreScroll = new JScrollPane(highScoreTable);
+        highScoreScroll.setPreferredSize(new Dimension(300, 200));
+
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BorderLayout(10, 10));
+        JLabel hsTitle = new JLabel("Top 5 High Score", SwingConstants.CENTER);
+        hsTitle.setFont(new Font("Arial", Font.BOLD, 18));
+        rightPanel.add(hsTitle, BorderLayout.NORTH);
+        rightPanel.add(highScoreScroll, BorderLayout.CENTER);
+
+        // --- Gabung Kiri & Kanan ---
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.X_AXIS));
+        centerPanel.add(leftPanel);
+
+        // Spacer (jarak antar panel)
+        centerPanel.add(Box.createRigidArea(new Dimension(40, 0)));
+
+        centerPanel.add(rightPanel);
+
+        add(centerPanel, BorderLayout.CENTER);
+
+        // --- Button Action ---
         registerButton.addActionListener(e -> {
             showRegisterDialog();
             tableModel.loadPlayers();
             updateButtonState();
+            highScoreModel.loadHighScores();
         });
 
         editButton.addActionListener(e -> {
@@ -108,6 +147,7 @@ public class HomePage extends JPanel {
                 showEditDialog(playerId, username, skillId);
                 tableModel.loadPlayers();
                 updateButtonState();
+                highScoreModel.loadHighScores();
             }
         });
 
@@ -122,6 +162,7 @@ public class HomePage extends JPanel {
                     }
                     tableModel.loadPlayers();
                     updateButtonState();
+                    highScoreModel.loadHighScores();
                 }
             }
         });
@@ -139,6 +180,7 @@ public class HomePage extends JPanel {
         });
 
         tableModel.loadPlayers();
+        highScoreModel.loadHighScores();
     }
 
     private void updateButtonState() {
@@ -306,6 +348,50 @@ public class HomePage extends JPanel {
             return switch (col) {
                 case 0 -> Integer.class;
                 case 3 -> Boolean.class;
+                default -> String.class;
+            };
+        }
+    }
+
+    // --- High Score Table Model ---
+    class HighScoreTableModel extends AbstractTableModel {
+        private final String[] columns = {"No", "Player", "Score"};
+        private final List<Object[]> data = new ArrayList<>();
+
+        public void loadHighScores() {
+            data.clear();
+            // Ambil top 5 high score dari database
+            List<Map<String, Object>> hs = db.getTop5HighScores();
+            int no = 1;
+            for (Map<String, Object> row : hs) {
+                data.add(new Object[]{
+                        no++,
+                        row.get("username"),
+                        row.get("score")
+                });
+            }
+            fireTableDataChanged();
+        }
+
+        public int getRowCount() {
+            return data.size();
+        }
+
+        public int getColumnCount() {
+            return columns.length;
+        }
+
+        public Object getValueAt(int row, int col) {
+            return data.get(row)[col];
+        }
+
+        public String getColumnName(int col) {
+            return columns[col];
+        }
+
+        public Class<?> getColumnClass(int col) {
+            return switch (col) {
+                case 0, 2 -> Integer.class;
                 default -> String.class;
             };
         }

@@ -41,6 +41,30 @@ public class DatabaseManager {
         return false;
     }
 
+    public List<Map<String, Object>> getTop5HighScores() {
+    List<Map<String, Object>> list = new ArrayList<>();
+    String sql = """
+        SELECT p.username, MAX(s.score) AS score
+        FROM scores s
+        JOIN players p ON s.player_id = p.id
+        GROUP BY s.player_id
+        ORDER BY score DESC
+        LIMIT 5
+        """;
+    try (Statement st = conn.createStatement();
+         ResultSet rs = st.executeQuery(sql)) {
+        while (rs.next()) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("username", rs.getString("username"));
+            row.put("score", rs.getInt("score"));
+            list.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
     public void updatePlayer(int playerId, String username, int skillId) {
     try (PreparedStatement ps = conn.prepareStatement(
             "UPDATE players SET username=?, skill=? WHERE id=?")) {
