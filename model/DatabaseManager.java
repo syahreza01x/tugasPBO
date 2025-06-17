@@ -20,7 +20,7 @@ public class DatabaseManager {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return 0; // default skill
+        return 0;
     }
 
     public int getSkillCooldown(int skillId) {
@@ -35,7 +35,6 @@ public class DatabaseManager {
         return 15000;
     }
 
-    // Tambahan: Mendapatkan nama file sound skill dari tabel skills
     public String getSkillSound(int skillId) {
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT sounds FROM skills WHERE id=?")) {
@@ -45,7 +44,7 @@ public class DatabaseManager {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return "skill1.wav"; // fallback
+        return "skill1.wav";
     }
 
     public void createTables() {
@@ -53,7 +52,6 @@ public class DatabaseManager {
             stmt.execute("CREATE TABLE IF NOT EXISTS players (id INT PRIMARY KEY AUTO_INCREMENT, username VARCHAR(50), password VARCHAR(255), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
             stmt.execute("CREATE TABLE IF NOT EXISTS scores (id INT PRIMARY KEY AUTO_INCREMENT, player_id INT, score INT, match_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
             stmt.execute("CREATE TABLE IF NOT EXISTS powerups_log (id INT PRIMARY KEY AUTO_INCREMENT, player_id INT, powerup_type VARCHAR(50), collected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
-            // Tambahkan tabel skills jika belum ada
             stmt.execute("CREATE TABLE IF NOT EXISTS skills (id INT PRIMARY KEY AUTO_INCREMENT, nama_skill VARCHAR(50), penjelasan VARCHAR(255), cooldown INT, sounds VARCHAR(100))");
         } catch (SQLException e) { e.printStackTrace(); }
     }
@@ -66,6 +64,14 @@ public class DatabaseManager {
             ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void saveHighScore(int playerId, int score) {
+        int currentHigh = getHighScore(playerId);
+        if (score > currentHigh) {
+            deleteScoresByPlayer(playerId);
+            insertScore(playerId, score);
         }
     }
 

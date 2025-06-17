@@ -21,6 +21,11 @@ public class GameModel {
     public int lives1 = 3, lives2 = 3;
     public boolean player1Dead = false, player2Dead = false, isSinglePlayer = true;
 
+    private boolean extraHealthActive1 = false;
+    private boolean extraHealthActive2 = false;
+    private long extraHealthStart1 = 0;
+    private long extraHealthStart2 = 0;
+
     private int skill1Id, skill2Id;
     private int skill1Cooldown, skill2Cooldown;
     private String skill1Sound, skill2Sound;
@@ -57,9 +62,11 @@ public class GameModel {
     private int player1Id, player2Id;
     private DatabaseManager db;
 
-    // Pause hanya untuk cooldown lawan!
-    public long pauseStartP1 = 0, pauseAccumP1 = 0; // Untuk cooldown P1 (dipause saat skill 1/3 P2 aktif)
-    public long pauseStartP2 = 0, pauseAccumP2 = 0; // Untuk cooldown P2 (dipause saat skill 1/3 P1 aktif)
+    public long pauseStartP1 = 0, pauseAccumP1 = 0;
+    public long pauseStartP2 = 0, pauseAccumP2 = 0;
+
+    private int reverseTickCounter1 = 0;
+    private int reverseTickCounter2 = 0;
 
     public static class Drop {
         public int x, y, type;
@@ -123,12 +130,13 @@ public class GameModel {
         bgmPosition = 0;
         pauseStartP1 = 0; pauseAccumP1 = 0;
         pauseStartP2 = 0; pauseAccumP2 = 0;
+        reverseTickCounter1 = 0;
+        reverseTickCounter2 = 0;
     }
 
     public void updateGame() {
         long now = System.currentTimeMillis();
 
-        // Hapus karakter lama
         for (int i = 0; i < ROWS; i++) {
             for (int j = 0; j < COLS; j++) {
                 if (arena[i][j] == '♥' || arena[i][j] == '♦') {
@@ -137,7 +145,15 @@ public class GameModel {
             }
         }
 
-        // Power-up durations
+        if (extraHealthActive1 && now - extraHealthStart1 >= 4000) {
+        resumeBGM();
+        extraHealthActive1 = false;
+        }
+        if (extraHealthActive2 && now - extraHealthStart2 >= 4000) {
+        resumeBGM();
+        extraHealthActive2 = false;
+        }
+
         if (shield1 && now - shield1Start > 5000) shield1 = false;
         if (shield2 && now - shield2Start > 5000) shield2 = false;
         if (speed1 && now - speed1Start > 5000) speed1 = false;
@@ -145,7 +161,6 @@ public class GameModel {
         if (skillLock1 && now - skillLock1Start > 20000) skillLock1 = false;
         if (skillLock2 && now - skillLock2Start > 20000) skillLock2 = false;
 
-        // Efek Time Stop selesai: resume BGM dan akumulasi pause lawan
         if (timeStopActive1 && (now - timeStopStart1 >= 5000)) {
             timeStopActive1 = false;
             timeStopCooldownStart1 = now;
@@ -161,7 +176,6 @@ public class GameModel {
         showTimeStopEffect1 = timeStopActive1 && (now - timeStopStart1 <= 5000);
         showTimeStopEffect2 = timeStopActive2 && (now - timeStopStart2 <= 5000);
 
-        // Efek Time Reverse selesai: resume BGM dan akumulasi pause lawan
         if (timeReverseActive1 && (now - timeReverseStart1 >= 10000)) {
             timeReverseActive1 = false;
             timeReverseCooldownStart1 = now;
@@ -177,7 +191,6 @@ public class GameModel {
         showTimeReverseEffect1 = timeReverseActive1 && (now - timeReverseStart1 <= 10000);
         showTimeReverseEffect2 = timeReverseActive2 && (now - timeReverseStart2 <= 10000);
 
-        // Efek Area Clear
         if (areaClearActive1 && (now - areaClearStart1 <= 5000)) {
             clearBulletsAroundPlayer(1);
             showAreaClearEffect1 = true;
@@ -185,6 +198,7 @@ public class GameModel {
             if (areaClearActive1) {
                 areaClearActive1 = false;
                 areaClearCooldownStart1 = now;
+                resumeBGM();
             }
             showAreaClearEffect1 = false;
         }
@@ -195,18 +209,42 @@ public class GameModel {
             if (areaClearActive2) {
                 areaClearActive2 = false;
                 areaClearCooldownStart2 = now;
+                resumeBGM();
             }
             showAreaClearEffect2 = false;
         }
 
-        // Skor: hanya skor pengguna time stop yang tetap bertambah, time reverse lawan turun
-        if (!player1Dead && (!timeStopActive2) && (!timeReverseActive2)) score1++;
-        if (!player2Dead && !isSinglePlayer && (!timeStopActive1) && (!timeReverseActive1)) score2++;
-        // Skor lawan mundur lebih cepat (setiap 200ms)
-        if (timeReverseActive1 && !player2Dead && !isSinglePlayer && now % 200 < 50 && score2 > 0) score2--;
-        if (timeReverseActive2 && !player1Dead && now % 200 < 50 && score1 > 0) score1--;
+        if (!player1Dead) {
+            if (timeReverseActive2) {
+                reverseTickCounter1++;
+                if (reverseTickCounter1 % 2 == 0 && score1 > 0) score1--;
+            } else if (timeStopActive2) {
+                reverseTickCounter1 = 0;
+            } else if (timeReverseActive1) {
+                reverseTickCounter1 = 0;
+            } else {
+                score1++;
+                reverseTickCounter1 = 0;
+            }
+        } else {
+            reverseTickCounter1 = 0;
+        }
+        if (!player2Dead && !isSinglePlayer) {
+            if (timeReverseActive1) {
+                reverseTickCounter2++;
+                if (reverseTickCounter2 % 2 == 0 && score2 > 0) score2--;
+            } else if (timeStopActive1) {
+                reverseTickCounter2 = 0;
+            } else if (timeReverseActive2) {
+                reverseTickCounter2 = 0;
+            } else {
+                score2++;
+                reverseTickCounter2 = 0;
+            }
+        } else {
+            reverseTickCounter2 = 0;
+        }
 
-        // Bullets & drops
         if (!(timeStopActive1 || timeStopActive2 || timeReverseActive1 || timeReverseActive2)) {
             updateBullets();
             spawnBullets();
@@ -214,18 +252,12 @@ public class GameModel {
             updateDrops();
         }
 
-        // Collision & game over
         if (!player1Dead && arena[heartX1][heartY1] == '*' && !shield1) {
             lives1--;
             if (lives1 <= 0) {
                 player1Dead = true;
-                if (score1 > highScore1) {
-                    db.deleteScoresByPlayer(player1Id);
-                    highScore1 = score1;
-                    db.insertScore(player1Id, score1);
-                } else {
-                    db.insertScore(player1Id, score1);
-                }
+                db.saveHighScore(player1Id, score1);
+                highScore1 = db.getHighScore(player1Id);
                 JOptionPane.showMessageDialog(null, "\uD83D\uDC80 " + username1 + " Kehabisan nyawa! Game Over.\nScore: " + score1 + "\nHigh Score: " + highScore1);
             }
         }
@@ -233,13 +265,8 @@ public class GameModel {
             lives2--;
             if (lives2 <= 0) {
                 player2Dead = true;
-                if (score2 > highScore2) {
-                    db.deleteScoresByPlayer(player2Id);
-                    highScore2 = score2;
-                    db.insertScore(player2Id, score2);
-                } else {
-                    db.insertScore(player2Id, score2);
-                }
+                db.saveHighScore(player2Id, score2);
+                highScore2 = db.getHighScore(player2Id);
                 JOptionPane.showMessageDialog(null, "\uD83D\uDC80 " + username2 + " Kehabisan nyawa! Game Over.\nScore: " + score2 + "\nHigh Score: " + highScore2);
             }
         }
@@ -309,7 +336,6 @@ public class GameModel {
         }
     }
 
-    // Cooldown dengan pause lawan SAJA
     public boolean isTimeStopReady1() {
         long now = System.currentTimeMillis();
         long pause = pauseAccumP1;
@@ -381,7 +407,15 @@ public class GameModel {
         }
     }
 
+    public boolean canMovePlayer1() {
+        return !timeStopActive2 && !timeReverseActive2;
+    }
+    public boolean canMovePlayer2() {
+        return !timeStopActive1 && !timeReverseActive1;
+    }
+
     public void movePlayer1(int dx, int dy) {
+        if (!canMovePlayer1()) return;
         int moveStep = speed1 ? 2 : 1;
         int nx = heartX1 + dx * moveStep, ny = heartY1 + dy * moveStep;
         if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLS) {
@@ -389,6 +423,7 @@ public class GameModel {
         }
     }
     public void movePlayer2(int dx, int dy) {
+        if (!canMovePlayer2()) return;
         int moveStep = speed2 ? 2 : 1;
         int nx = heartX2 + dx * moveStep, ny = heartY2 + dy * moveStep;
         if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLS) {
@@ -396,7 +431,6 @@ public class GameModel {
         }
     }
 
-    // Skill activation: hanya pause cooldown lawan!
     public void activateTimeStopForPlayer1() {
         if (isTimeStopReady1()) {
             pauseBGM();
@@ -417,6 +451,7 @@ public class GameModel {
     }
     public void activateAreaClearForPlayer1() {
         if (isAreaClearReady1()) {
+            pauseBGM();
             areaClearActive1 = true;
             areaClearStart1 = System.currentTimeMillis();
             showAreaClearEffect1 = true;
@@ -425,6 +460,7 @@ public class GameModel {
     }
     public void activateAreaClearForPlayer2() {
         if (isAreaClearReady2()) {
+            pauseBGM();
             areaClearActive2 = true;
             areaClearStart2 = System.currentTimeMillis();
             showAreaClearEffect2 = true;
@@ -450,21 +486,26 @@ public class GameModel {
         }
     }
     public void activateExtraHealthForPlayer1() {
-        if (lives1 < 5) {
-            lives1++;
-            playSound("sounds/" + skill1Sound);
-            areaClearCooldownStart1 = System.currentTimeMillis();
+    if (lives1 < 5 && !extraHealthActive1) {
+        pauseBGM();
+        lives1++;
+        playSound("sounds/" + skill1Sound);
+        areaClearCooldownStart1 = System.currentTimeMillis();
+        extraHealthActive1 = true;
+        extraHealthStart1 = System.currentTimeMillis();
         }
     }
     public void activateExtraHealthForPlayer2() {
-        if (lives2 < 5) {
-            lives2++;
-            playSound("sounds/" + skill2Sound);
-            areaClearCooldownStart2 = System.currentTimeMillis();
-        }
+    if (lives2 < 5 && !extraHealthActive2) {
+        pauseBGM();
+        lives2++;
+        playSound("sounds/" + skill2Sound);
+        areaClearCooldownStart2 = System.currentTimeMillis();
+        extraHealthActive2 = true;
+        extraHealthStart2 = System.currentTimeMillis();
+       }
     }
 
-    // BGM controls
     public void playBGM(String filePath) {
         try {
             File soundFile = new File(filePath);
