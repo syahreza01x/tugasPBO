@@ -1,16 +1,5 @@
 # ReZy Retro Game MVC
 
-## Username Player 1 : Reza  
-## Password Player 1 : 123  
-## Username Player 2 : Ferdi  
-## Password Player 2 : 789  
-## Username Player 3 : Puci  
-## Password Player 3 : 123  
-## Username Player 4 : Fadilah  
-## Password Player 4 : 789  
-
----
-
 ## Kontrol Pemain
 
 ### **Player 1**
