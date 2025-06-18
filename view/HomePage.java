@@ -6,6 +6,7 @@ import model.DatabaseManager.Skill;
 
 import javax.swing.*;
 import javax.swing.table.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
@@ -25,6 +26,14 @@ public class HomePage extends JPanel {
     private HighScoreTableModel highScoreModel;
     private JTable highScoreTable;
 
+    // Tema warna
+    private final Color bgDark = new Color(30, 34, 45);
+    private final Color bgPanel = new Color(40, 44, 60);
+    private final Color blueAccent = new Color(0, 120, 215);
+    private final Color textColor = new Color(220, 220, 230);
+    private final Color tableHeader = new Color(20, 24, 34);
+    private final Color tableRow = new Color(38, 42, 56);
+
     public interface PlayListener {
         void onPlay(List<Integer> playerIds, List<String> usernames);
     }
@@ -35,9 +44,12 @@ public class HomePage extends JPanel {
 
         setLayout(new BorderLayout(20, 20));
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        setBackground(bgDark);
 
         JLabel title = new JLabel("Game Kelompok 5 PBO", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 30));
+        title.setFont(new Font("Segoe UI", Font.BOLD, 30));
+        title.setForeground(blueAccent);
+        title.setBorder(new EmptyBorder(10, 0, 20, 0));
         add(title, BorderLayout.NORTH);
 
         // --- KIRI: Data Player ---
@@ -47,8 +59,18 @@ public class HomePage extends JPanel {
         table.getColumnModel().getColumn(0).setMaxWidth(50);
         table.getColumnModel().getColumn(3).setMaxWidth(60);
         table.setRowHeight(32);
-        table.setFont(new Font("Arial", Font.PLAIN, 14));
-        table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
+        table.setBackground(tableRow);
+        table.setForeground(textColor);
+        table.setSelectionBackground(blueAccent.darker());
+        table.setSelectionForeground(Color.WHITE);
+        table.setGridColor(bgDark);
+
+        JTableHeader th = table.getTableHeader();
+        th.setBackground(tableHeader);
+        th.setForeground(blueAccent);
+        th.setReorderingAllowed(false);
 
         // Pilih (checkbox) renderer
         table.getColumnModel().getColumn(3).setCellRenderer(new DefaultTableCellRenderer() {
@@ -58,6 +80,7 @@ public class HomePage extends JPanel {
                 checkBox.setSelected((Boolean) value);
                 checkBox.setHorizontalAlignment(SwingConstants.CENTER);
                 checkBox.setEnabled(true);
+                checkBox.setBackground(isSelected ? blueAccent.darker() : tableRow);
                 return checkBox;
             }
         });
@@ -80,12 +103,17 @@ public class HomePage extends JPanel {
 
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setPreferredSize(new Dimension(400, 350));
+        scrollPane.getViewport().setBackground(bgPanel);
+        scrollPane.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        registerButton.setPreferredSize(new Dimension(100, 30));
-        editButton.setPreferredSize(new Dimension(100, 30));
-        deleteButton.setPreferredSize(new Dimension(100, 30));
-        playButton.setPreferredSize(new Dimension(100, 30));
+        buttonPanel.setBackground(bgPanel);
+
+        styleButton(registerButton);
+        styleButton(editButton);
+        styleButton(deleteButton);
+        styleButton(playButton);
+
         playButton.setEnabled(false);
         editButton.setEnabled(false);
         deleteButton.setEnabled(false);
@@ -97,6 +125,8 @@ public class HomePage extends JPanel {
 
         JPanel leftPanel = new JPanel();
         leftPanel.setLayout(new BorderLayout(10, 10));
+        leftPanel.setBackground(bgPanel);
+        leftPanel.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
         leftPanel.add(scrollPane, BorderLayout.CENTER);
         leftPanel.add(buttonPanel, BorderLayout.SOUTH);
 
@@ -104,23 +134,40 @@ public class HomePage extends JPanel {
         highScoreModel = new HighScoreTableModel();
         highScoreTable = new JTable(highScoreModel);
         highScoreTable.setRowHeight(28);
-        highScoreTable.setFont(new Font("Arial", Font.PLAIN, 14));
-        highScoreTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 14));
+        highScoreTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        highScoreTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
         highScoreTable.getColumnModel().getColumn(0).setMaxWidth(50);
+        highScoreTable.setBackground(tableRow);
+        highScoreTable.setForeground(textColor);
+        highScoreTable.setSelectionBackground(blueAccent.darker());
+        highScoreTable.setSelectionForeground(Color.WHITE);
+        highScoreTable.setGridColor(bgDark);
+
+        JTableHeader hsTh = highScoreTable.getTableHeader();
+        hsTh.setBackground(tableHeader);
+        hsTh.setForeground(blueAccent);
+        hsTh.setReorderingAllowed(false);
 
         JScrollPane highScoreScroll = new JScrollPane(highScoreTable);
         highScoreScroll.setPreferredSize(new Dimension(300, 200));
+        highScoreScroll.getViewport().setBackground(bgPanel);
+        highScoreScroll.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
 
         JPanel rightPanel = new JPanel();
         rightPanel.setLayout(new BorderLayout(10, 10));
+        rightPanel.setBackground(bgPanel);
+        rightPanel.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
         JLabel hsTitle = new JLabel("Top 5 High Score", SwingConstants.CENTER);
-        hsTitle.setFont(new Font("Arial", Font.BOLD, 18));
+        hsTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        hsTitle.setForeground(blueAccent);
+        hsTitle.setBorder(new EmptyBorder(10, 0, 10, 0));
         rightPanel.add(hsTitle, BorderLayout.NORTH);
         rightPanel.add(highScoreScroll, BorderLayout.CENTER);
 
         // --- Gabung Kiri & Kanan ---
         JPanel centerPanel = new JPanel();
         centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.X_AXIS));
+        centerPanel.setBackground(bgDark);
         centerPanel.add(leftPanel);
 
         // Spacer (jarak antar panel)
@@ -183,6 +230,17 @@ public class HomePage extends JPanel {
         highScoreModel.loadHighScores();
     }
 
+    // Tambahkan method untuk styling button
+    private void styleButton(JButton btn) {
+        btn.setPreferredSize(new Dimension(100, 30));
+        btn.setBackground(blueAccent);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    }
+
     private void updateButtonState() {
         int selected = tableModel.getSelectedCount();
         playButton.setEnabled(selected >= 1 && selected <= 2);
@@ -197,15 +255,41 @@ public class HomePage extends JPanel {
         var skills = db.getAllSkills();
         for (var s : skills) skillBox.addItem(s.namaSkill);
 
+        // Set warna dark untuk semua komponen
+        usernameField.setBackground(bgPanel);
+        usernameField.setForeground(textColor);
+        usernameField.setCaretColor(textColor);
+        usernameField.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
+
+        passwordField.setBackground(bgPanel);
+        passwordField.setForeground(textColor);
+        passwordField.setCaretColor(textColor);
+        passwordField.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
+
+        skillBox.setBackground(bgPanel);
+        skillBox.setForeground(textColor);
+
         JPanel panel = new JPanel(new GridLayout(0, 1));
-        panel.add(new JLabel("Username:"));
+        panel.setBackground(bgPanel);
+        JLabel l1 = new JLabel("Username:");
+        JLabel l2 = new JLabel("Password:");
+        JLabel l3 = new JLabel("Skill:");
+        l1.setForeground(textColor);
+        l2.setForeground(textColor);
+        l3.setForeground(textColor);
+        panel.add(l1);
         panel.add(usernameField);
-        panel.add(new JLabel("Password:"));
+        panel.add(l2);
         panel.add(passwordField);
-        panel.add(new JLabel("Skill:"));
+        panel.add(l3);
         panel.add(skillBox);
 
-        int result = JOptionPane.showConfirmDialog(this, panel, "Register Player", JOptionPane.OK_CANCEL_OPTION);
+        // Set JOptionPane dark
+        UIManager.put("OptionPane.background", bgPanel);
+        UIManager.put("Panel.background", bgPanel);
+        UIManager.put("OptionPane.messageForeground", textColor);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Register Player", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (result == JOptionPane.OK_OPTION) {
             String username = usernameField.getText().trim();
             String password = new String(passwordField.getPassword());
@@ -233,13 +317,32 @@ public class HomePage extends JPanel {
         }
         skillBox.setSelectedIndex(selectedSkillIdx);
 
+        // Set warna dark untuk semua komponen
+        usernameField.setBackground(bgPanel);
+        usernameField.setForeground(textColor);
+        usernameField.setCaretColor(textColor);
+        usernameField.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
+
+        skillBox.setBackground(bgPanel);
+        skillBox.setForeground(textColor);
+
         JPanel panel = new JPanel(new GridLayout(0, 1));
-        panel.add(new JLabel("Username:"));
+        panel.setBackground(bgPanel);
+        JLabel l1 = new JLabel("Username:");
+        JLabel l2 = new JLabel("Skill:");
+        l1.setForeground(textColor);
+        l2.setForeground(textColor);
+        panel.add(l1);
         panel.add(usernameField);
-        panel.add(new JLabel("Skill:"));
+        panel.add(l2);
         panel.add(skillBox);
 
-        int result = JOptionPane.showConfirmDialog(this, panel, "Edit Player", JOptionPane.OK_CANCEL_OPTION);
+        // Set JOptionPane dark
+        UIManager.put("OptionPane.background", bgPanel);
+        UIManager.put("Panel.background", bgPanel);
+        UIManager.put("OptionPane.messageForeground", textColor);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Edit Player", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (result == JOptionPane.OK_OPTION) {
             String username = usernameField.getText().trim();
             int skillId = skills.get(skillBox.getSelectedIndex()).id;
