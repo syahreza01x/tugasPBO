@@ -395,6 +395,11 @@ public class HomePage extends JPanel {
         return false;
     }
 
+    // Method untuk refresh high score dari luar (misal setelah game selesai)
+    public void refreshHighScore() {
+        highScoreModel.loadHighScores();
+    }
+
     // --- Table Model ---
     class PlayerTableModel extends AbstractTableModel {
         private final String[] columns = {"No", "Player", "Skill", "Pilih"};

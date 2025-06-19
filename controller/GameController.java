@@ -41,6 +41,7 @@ public class GameController implements KeyListener, ActionListener {
             model.stopBGM();
             frame.setContentPane(homePage);
             frame.revalidate();
+            homePage.refreshHighScore();
             return;
         }
 
