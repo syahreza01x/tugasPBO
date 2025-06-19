@@ -191,6 +191,11 @@ public class HomePage extends JPanel {
                 int playerId = tableModel.getPlayerId(idx);
                 String username = tableModel.getPlayerName(idx);
                 int skillId = tableModel.getPlayerSkillId(idx);
+                // Konfirmasi password sebelum edit
+                if (!verifyPassword(username)) {
+                    JOptionPane.showMessageDialog(this, "Password salah atau aksi dibatalkan!");
+                    return;
+                }
                 showEditDialog(playerId, username, skillId);
                 tableModel.loadPlayers();
                 updateButtonState();
@@ -201,6 +206,12 @@ public class HomePage extends JPanel {
         deleteButton.addActionListener(e -> {
             List<Integer> selectedIdx = tableModel.getSelectedIndexes();
             if (!selectedIdx.isEmpty()) {
+                // Konfirmasi password untuk username pertama yang dipilih
+                String username = tableModel.getPlayerName(selectedIdx.get(0));
+                if (!verifyPassword(username)) {
+                    JOptionPane.showMessageDialog(this, "Password salah atau aksi dibatalkan!");
+                    return;
+                }
                 int confirm = JOptionPane.showConfirmDialog(this, "Yakin ingin menghapus player terpilih?", "Hapus Player", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
                     for (int idx : selectedIdx) {
@@ -245,7 +256,7 @@ public class HomePage extends JPanel {
         int selected = tableModel.getSelectedCount();
         playButton.setEnabled(selected >= 1 && selected <= 2);
         editButton.setEnabled(selected == 1);
-        deleteButton.setEnabled(selected >= 1);
+        deleteButton.setEnabled(selected == 1);
     }
 
     private void showRegisterDialog() {
@@ -356,6 +367,32 @@ public class HomePage extends JPanel {
             }
             db.updatePlayer(playerId, username, skillId);
         }
+    }
+
+    // Konfirmasi password sebelum edit/delete
+    private boolean verifyPassword(String username) {
+        JPasswordField passwordField = new JPasswordField();
+        passwordField.setBackground(bgPanel);
+        passwordField.setForeground(textColor);
+        passwordField.setCaretColor(textColor);
+        passwordField.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
+        JPanel panel = new JPanel(new GridLayout(0, 1));
+        panel.setBackground(bgPanel);
+        JLabel l1 = new JLabel("Masukkan password untuk " + username + ":");
+        l1.setForeground(textColor);
+        panel.add(l1);
+        panel.add(passwordField);
+
+        UIManager.put("OptionPane.background", bgPanel);
+        UIManager.put("Panel.background", bgPanel);
+        UIManager.put("OptionPane.messageForeground", textColor);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Konfirmasi Password", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result == JOptionPane.OK_OPTION) {
+            String password = new String(passwordField.getPassword());
+            return db.isPasswordValid(username, password);
+        }
+        return false;
     }
 
     // --- Table Model ---

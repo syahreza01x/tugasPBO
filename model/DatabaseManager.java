@@ -23,6 +23,20 @@ public class DatabaseManager {
         }
     }
 
+    public boolean isPasswordValid(String username, String password) {
+    try (PreparedStatement ps = conn.prepareStatement("SELECT password FROM players WHERE username=?")) {
+        ps.setString(1, username);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            String dbPass = rs.getString("password");
+            return dbPass.equals(password);
+        }
+        } catch (SQLException e) {
+        e.printStackTrace();
+        }
+        return false;
+    }
+
     public static class Skill {
         public int id;
         public String namaSkill;
