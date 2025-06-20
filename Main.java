@@ -33,8 +33,8 @@ public class Main {
             int player2Id = isSinglePlayer ? -1 : playerIds.get(1);
 
             GameModel model = new GameModel(isSinglePlayer, timeStopKey, areaClearKey, player1Id, player2Id, db);
-            model.username1 = usernames.get(0);
-            if (!isSinglePlayer) model.username2 = usernames.get(1);
+            model.player1.username = usernames.get(0);
+            if (!isSinglePlayer) model.player2.username = usernames.get(1);
 
             GameView view = new GameView(model);
             new GameController(model, view, delay, frame, home[0]);

@@ -45,10 +45,11 @@ public class GameController implements KeyListener, ActionListener {
             return;
         }
 
-        if (model.player1Dead && (model.player2Dead || model.isSinglePlayer)) return;
+        // Game over check
+        if (model.player1.dead && (model.player2.dead || model.isSinglePlayer)) return;
 
-        // Player 1 movement
-        if (!model.player1Dead) {
+        // Player 1 movement & skill
+        if (!model.player1.dead) {
             switch (key) {
                 case KeyEvent.VK_W -> model.movePlayer1(-1, 0);
                 case KeyEvent.VK_S -> model.movePlayer1(1, 0);
@@ -69,7 +70,7 @@ public class GameController implements KeyListener, ActionListener {
         }
 
         // Player 2 movement & skill (jika multiplayer)
-        if (!model.player2Dead && !model.isSinglePlayer && !model.timeStopActive2) {
+        if (!model.player2.dead && !model.isSinglePlayer && !model.player2.timeStopActive) {
             switch (key) {
                 case KeyEvent.VK_UP -> model.movePlayer2(-1, 0);
                 case KeyEvent.VK_DOWN -> model.movePlayer2(1, 0);

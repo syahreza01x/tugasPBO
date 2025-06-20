@@ -1,83 +1,220 @@
 package model;
 
 import java.util.*;
-import java.awt.event.KeyEvent;
 import javax.swing.JOptionPane;
-import javax.sound.sampled.*;
-import java.io.File;
-import java.io.IOException;
 
 public class GameModel {
-    private Clip bgmClip;
-    private long bgmPosition = 0;
-
     public final int ROWS = 20, COLS = 60;
     public char[][] arena = new char[ROWS][COLS];
-    public int heartX1 = ROWS - 2, heartY1 = COLS / 4;
-    public int heartX2 = ROWS - 2, heartY2 = COLS - COLS / 4;
 
-    public int score1 = 0, score2 = 0;
-    public int highScore1 = 0, highScore2 = 0;
-    public int lives1 = 3, lives2 = 3;
-    public boolean player1Dead = false, player2Dead = false, isSinglePlayer = true;
-
-    private boolean extraHealthActive1 = false;
-    private boolean extraHealthActive2 = false;
-    private long extraHealthStart1 = 0;
-    private long extraHealthStart2 = 0;
-
-    private int skill1Id, skill2Id;
-    private int skill1Cooldown, skill2Cooldown;
-    private String skill1Sound, skill2Sound;
-
-    public boolean timeStopActive1 = false, timeStopActive2 = false;
-    public long timeStopStart1 = 0, timeStopStart2 = 0;
-    public long timeStopCooldownStart1 = -15000, timeStopCooldownStart2 = -15000;
-    public boolean areaClearActive1 = false, areaClearActive2 = false;
-    public long areaClearStart1 = 0, areaClearStart2 = 0;
-    public long areaClearCooldownStart1 = -20000, areaClearCooldownStart2 = -20000;
-
-    public boolean timeReverseActive1 = false, timeReverseActive2 = false;
-    public long timeReverseStart1 = 0, timeReverseStart2 = 0;
-    public long timeReverseCooldownStart1 = -20000, timeReverseCooldownStart2 = -20000;
-
-    public boolean showTimeStopEffect1 = false, showTimeStopEffect2 = false;
-    public boolean showAreaClearEffect1 = false, showAreaClearEffect2 = false;
-    public boolean showTimeReverseEffect1 = false, showTimeReverseEffect2 = false;
-
-    public boolean shield1 = false, shield2 = false;
-    public long shield1Start = 0, shield2Start = 0;
-    public boolean speed1 = false, speed2 = false;
-    public long speed1Start = 0, speed2Start = 0;
-    public boolean skillLock1 = false, skillLock2 = false;
-    public long skillLock1Start = 0, skillLock2Start = 0;
-
-    public int timeStopKey;
-    public int areaClearKey;
-    public static final int DEFAULT_TIME_STOP_KEY = KeyEvent.VK_E;
-    public static final int DEFAULT_AREA_CLEAR_KEY = KeyEvent.VK_END;
-
-    public String username1, username2;
+    public GamePlayer player1, player2;
+    public boolean isSinglePlayer = true;
 
     private int player1Id, player2Id;
     private DatabaseManager db;
 
-    public long pauseStartP1 = 0, pauseAccumP1 = 0;
-    public long pauseStartP2 = 0, pauseAccumP2 = 0;
+    public GameAudio audio = new GameAudio();
+    public GameDrop drop = new GameDrop();
+    public GameSkill skill;
+    public GamePowerup powerup;
+    public GameArena arenaHelper;
 
-    private int reverseTickCounter1 = 0;
-    private int reverseTickCounter2 = 0;
+    // Skill id, cooldown, sound
+    private int skill1Id, skill2Id;
+    private int skill1Cooldown, skill2Cooldown;
+    private String skill1Sound, skill2Sound;
 
-    public static class Drop {
-        public int x, y, type;
-        public char icon;
-        public Drop(int x, int y, char icon, int type) {
-            this.x = x; this.y = y; this.icon = icon; this.type = type;
+    private int reverseTickCounter1 = 0, reverseTickCounter2 = 0;
+
+    // Untuk key binding
+    public static final int DEFAULT_TIME_STOP_KEY = java.awt.event.KeyEvent.VK_E;
+    public static final int DEFAULT_AREA_CLEAR_KEY = java.awt.event.KeyEvent.VK_END;
+    public int timeStopKey = DEFAULT_TIME_STOP_KEY;
+    public int areaClearKey = DEFAULT_AREA_CLEAR_KEY;
+
+    public GameModel(boolean isSinglePlayer, int timeStopKey, int areaClearKey, int player1Id, int player2Id, DatabaseManager db) {
+        this.isSinglePlayer = isSinglePlayer;
+        this.player1Id = player1Id;
+        this.player2Id = player2Id;
+        this.db = db;
+
+        player1 = new GamePlayer(ROWS - 2, COLS / 4);
+        player2 = new GamePlayer(ROWS - 2, COLS - COLS / 4);
+
+        this.skill = new GameSkill(this, db, player1Id, player2Id);
+        this.powerup = new GamePowerup(db);
+
+        this.skill1Id = skill.skill1Id;
+        this.skill2Id = skill.skill2Id;
+        this.skill1Cooldown = skill.skill1Cooldown;
+        this.skill2Cooldown = skill.skill2Cooldown;
+        this.skill1Sound = skill.skill1Sound;
+        this.skill2Sound = skill.skill2Sound;
+
+        this.timeStopKey = timeStopKey;
+        this.areaClearKey = areaClearKey;
+
+        this.arenaHelper = new GameArena(ROWS, COLS, arena);
+
+        resetGame();
+        player1.highScore = db.getHighScore(player1Id);
+        if (!isSinglePlayer) player2.highScore = db.getHighScore(player2Id);
+    }
+
+    public void resetGame() {
+    for (int i = 0; i < ROWS; i++) Arrays.fill(arena[i], ' ');
+    player1.x = ROWS - 2; player1.y = COLS / 4;
+    player2.x = ROWS - 2; player2.y = COLS - COLS / 4;
+    player1.score = 0; player2.score = 0;
+    player1.lives = 3; player2.lives = 3;
+    player1.dead = false; player2.dead = false;
+    player1.shield = player2.shield = false;
+    player1.speed = player2.speed = false;
+    player1.skillLock = player2.skillLock = false;
+    player1.showTimeStopEffect = player2.showTimeStopEffect = false;
+    player1.showTimeReverseEffect = player2.showTimeReverseEffect = false;
+    player1.showAreaClearEffect = player2.showAreaClearEffect = false;
+    player1.timeStopActive = player2.timeStopActive = false;
+    player1.timeReverseActive = player2.timeReverseActive = false;
+    player1.areaClearActive = player2.areaClearActive = false;
+    player1.pauseStart = player2.pauseStart = 0;
+    player1.pauseAccum = player2.pauseAccum = 0;
+    player1.extraHealthActive = player2.extraHealthActive = false;
+    player1.extraHealthStart = player2.extraHealthStart = 0;
+    reverseTickCounter1 = reverseTickCounter2 = 0;
+    drop.clear();
+
+    player1.timeStopCooldownStart = -skill1Cooldown;
+    player1.areaClearCooldownStart = -skill1Cooldown;
+    player1.timeReverseCooldownStart = -skill1Cooldown;
+    player2.timeStopCooldownStart = -skill2Cooldown;
+    player2.areaClearCooldownStart = -skill2Cooldown;
+    player2.timeReverseCooldownStart = -skill2Cooldown;
+}
+
+    public void updateGame() {
+        long now = System.currentTimeMillis();
+
+        for (int i = 0; i < ROWS; i++)
+            for (int j = 0; j < COLS; j++)
+                if (arena[i][j] == '♥' || arena[i][j] == '♦')
+                    arena[i][j] = ' ';
+
+        updatePlayerEffects(player1, now);
+        if (!isSinglePlayer) updatePlayerEffects(player2, now);
+
+        // Skor dan efek reverse
+        updatePlayerScore(player1, player2, true);
+        if (!isSinglePlayer) updatePlayerScore(player2, player1, false);
+
+        if (!(player1.timeStopActive || player2.timeStopActive || player1.timeReverseActive || player2.timeReverseActive)) {
+            arenaHelper.updateBullets(player1, player2);
+            arenaHelper.spawnBullets();
+            drop.spawnDrops(ROWS, COLS);
+            drop.updateDrops(this);
+        }
+
+        // Cek collision
+        checkPlayerCollision(player1, player1Id);
+        if (!isSinglePlayer) checkPlayerCollision(player2, player2Id);
+
+        // Game over
+        if (player1.dead && (player2.dead || isSinglePlayer)) {
+            JOptionPane.showMessageDialog(null, "\uD83C\uDFAE Game Over. Player mati.");
+            audio.stopBGM();
+            resetGame();
+            audio.playBGM("sounds/bgm.wav");
+        }
+
+        if (!player1.dead) arena[player1.x][player1.y] = '♥'; else arena[player1.x][player1.y] = ' ';
+        if (!player2.dead && !isSinglePlayer) arena[player2.x][player2.y] = '♦'; else arena[player2.x][player2.y] = ' ';
+    }
+
+    private void updatePlayerEffects(GamePlayer p, long now) {
+        if (p.extraHealthActive && now - p.extraHealthStart >= 4000) {
+            audio.resumeBGM();
+            p.extraHealthActive = false;
+        }
+        if (p.shield && now - p.shieldStart > 5000) p.shield = false;
+        if (p.speed && now - p.speedStart > 5000) p.speed = false;
+        if (p.skillLock && now - p.skillLockStart > 20000) p.skillLock = false;
+
+        if (p.timeStopActive && (now - p.timeStopStart >= 5000)) {
+            p.timeStopActive = false;
+            p.timeStopCooldownStart = now;
+            audio.resumeBGM();
+        }
+        p.showTimeStopEffect = p.timeStopActive && (now - p.timeStopStart <= 5000);
+
+        if (p.timeReverseActive && (now - p.timeReverseStart >= 10000)) {
+            p.timeReverseActive = false;
+            p.timeReverseCooldownStart = now;
+            audio.resumeBGM();
+        }
+        p.showTimeReverseEffect = p.timeReverseActive && (now - p.timeReverseStart <= 10000);
+
+        if (p.areaClearActive && (now - p.areaClearStart <= 5000)) {
+            arenaHelper.clearBulletsAroundPlayer(p);
+            p.showAreaClearEffect = true;
+        } else {
+            if (p.areaClearActive) {
+                p.areaClearActive = false;
+                p.areaClearCooldownStart = now;
+                audio.resumeBGM();
+            }
+            p.showAreaClearEffect = false;
         }
     }
-    public List<Drop> drops = new ArrayList<>();
-    private final Random rand = new Random();
 
+    private void updatePlayerScore(GamePlayer p, GamePlayer enemy, boolean isP1) {
+        if (!p.dead) {
+            if (enemy.timeReverseActive) {
+                if (isP1) reverseTickCounter1++; else reverseTickCounter2++;
+                if ((isP1 ? reverseTickCounter1 : reverseTickCounter2) % 2 == 0 && p.score > 0) p.score--;
+            } else if (enemy.timeStopActive) {
+                if (isP1) reverseTickCounter1 = 0; else reverseTickCounter2 = 0;
+            } else if (p.timeReverseActive) {
+                if (isP1) reverseTickCounter1 = 0; else reverseTickCounter2 = 0;
+            } else {
+                p.score++;
+                if (isP1) reverseTickCounter1 = 0; else reverseTickCounter2 = 0;
+            }
+        } else {
+            if (isP1) reverseTickCounter1 = 0; else reverseTickCounter2 = 0;
+        }
+    }
+
+    private void checkPlayerCollision(GamePlayer p, int playerId) {
+        if (!p.dead && arena[p.x][p.y] == '*' && !p.shield) {
+            p.lives--;
+            if (p.lives <= 0) {
+                p.dead = true;
+                db.saveHighScore(playerId, p.score);
+                p.highScore = db.getHighScore(playerId);
+                JOptionPane.showMessageDialog(null, "\uD83D\uDC80 " + p.username + " Kehabisan nyawa! Game Over.\nScore: " + p.score + "\nHigh Score: " + p.highScore);
+            }
+        }
+    }
+
+    public void movePlayer1(int dx, int dy) {
+    // Hanya batasi jika lawan sedang time stop/reverse
+    if (!isSinglePlayer && (player2.timeStopActive || player2.timeReverseActive)) return;
+    int moveStep = player1.speed ? 2 : 1;
+    int nx = player1.x + dx * moveStep, ny = player1.y + dy * moveStep;
+    if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLS) {
+        player1.x = nx; player1.y = ny;
+        }   
+    }
+    public void movePlayer2(int dx, int dy) {
+    // Hanya batasi jika lawan sedang time stop/reverse
+    if (player1.timeStopActive || player1.timeReverseActive) return;
+    int moveStep = player2.speed ? 2 : 1;
+    int nx = player2.x + dx * moveStep, ny = player2.y + dy * moveStep;
+    if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLS) {
+        player2.x = nx; player2.y = ny;
+        }
+    }
+    // Skill getter/setter
     public int getSkill1Id() { return skill1Id; }
     public int getSkill2Id() { return skill2Id; }
     public int getSkill1Cooldown() { return skill1Cooldown; }
@@ -85,481 +222,140 @@ public class GameModel {
     public String getSkill1Sound() { return skill1Sound; }
     public String getSkill2Sound() { return skill2Sound; }
 
-    public GameModel(boolean isSinglePlayer, int timeStopKey, int areaClearKey, int player1Id, int player2Id, DatabaseManager db) {
-        this.isSinglePlayer = isSinglePlayer;
-        this.timeStopKey = timeStopKey;
-        this.areaClearKey = areaClearKey;
-        this.player1Id = player1Id;
-        this.player2Id = player2Id;
-        this.db = db;
-
-        this.skill1Id = db.getPlayerSkill(player1Id);
-        if (!isSinglePlayer) this.skill2Id = db.getPlayerSkill(player2Id);
-
-        this.skill1Cooldown = db.getSkillCooldown(skill1Id);
-        if (!isSinglePlayer) this.skill2Cooldown = db.getSkillCooldown(skill2Id);
-
-        this.skill1Sound = db.getSkillSound(skill1Id);
-        if (!isSinglePlayer) this.skill2Sound = db.getSkillSound(skill2Id);
-
-        resetGame();
-        highScore1 = db.getHighScore(player1Id);
-        if (!isSinglePlayer) highScore2 = db.getHighScore(player2Id);
-    }
-
-    public void resetGame() {
-        for (int i = 0; i < ROWS; i++) Arrays.fill(arena[i], ' ');
-        heartX1 = ROWS - 2; heartY1 = COLS / 4;
-        heartX2 = ROWS - 2; heartY2 = COLS - COLS / 4;
-        score1 = 0; score2 = 0;
-        lives1 = 3; lives2 = 3;
-        player1Dead = false; player2Dead = false;
-        timeStopActive1 = false; timeStopActive2 = false;
-        areaClearActive1 = false; areaClearActive2 = false;
-        timeReverseActive1 = false; timeReverseActive2 = false;
-        timeStopCooldownStart1 = -skill1Cooldown;
-        timeStopCooldownStart2 = -skill2Cooldown;
-        areaClearCooldownStart1 = -skill1Cooldown;
-        areaClearCooldownStart2 = -skill2Cooldown;
-        timeReverseCooldownStart1 = -skill1Cooldown;
-        timeReverseCooldownStart2 = -skill2Cooldown;
-        shield1 = false; shield2 = false;
-        speed1 = false; speed2 = false;
-        skillLock1 = false; skillLock2 = false;
-        drops.clear();
-        bgmPosition = 0;
-        pauseStartP1 = 0; pauseAccumP1 = 0;
-        pauseStartP2 = 0; pauseAccumP2 = 0;
-        reverseTickCounter1 = 0;
-        reverseTickCounter2 = 0;
-    }
-
-    public void updateGame() {
-        long now = System.currentTimeMillis();
-
-        for (int i = 0; i < ROWS; i++) {
-            for (int j = 0; j < COLS; j++) {
-                if (arena[i][j] == '♥' || arena[i][j] == '♦') {
-                    arena[i][j] = ' ';
-                }
-            }
-        }
-
-        if (extraHealthActive1 && now - extraHealthStart1 >= 4000) {
-        resumeBGM();
-        extraHealthActive1 = false;
-        }
-        if (extraHealthActive2 && now - extraHealthStart2 >= 4000) {
-        resumeBGM();
-        extraHealthActive2 = false;
-        }
-
-        if (shield1 && now - shield1Start > 5000) shield1 = false;
-        if (shield2 && now - shield2Start > 5000) shield2 = false;
-        if (speed1 && now - speed1Start > 5000) speed1 = false;
-        if (speed2 && now - speed2Start > 5000) speed2 = false;
-        if (skillLock1 && now - skillLock1Start > 20000) skillLock1 = false;
-        if (skillLock2 && now - skillLock2Start > 20000) skillLock2 = false;
-
-        if (timeStopActive1 && (now - timeStopStart1 >= 5000)) {
-            timeStopActive1 = false;
-            timeStopCooldownStart1 = now;
-            pauseAccumP2 += now - pauseStartP2;
-            resumeBGM();
-        }
-        if (timeStopActive2 && (now - timeStopStart2 >= 5000)) {
-            timeStopActive2 = false;
-            timeStopCooldownStart2 = now;
-            pauseAccumP1 += now - pauseStartP1;
-            resumeBGM();
-        }
-        showTimeStopEffect1 = timeStopActive1 && (now - timeStopStart1 <= 5000);
-        showTimeStopEffect2 = timeStopActive2 && (now - timeStopStart2 <= 5000);
-
-        if (timeReverseActive1 && (now - timeReverseStart1 >= 10000)) {
-            timeReverseActive1 = false;
-            timeReverseCooldownStart1 = now;
-            pauseAccumP2 += now - pauseStartP2;
-            resumeBGM();
-        }
-        if (timeReverseActive2 && (now - timeReverseStart2 >= 10000)) {
-            timeReverseActive2 = false;
-            timeReverseCooldownStart2 = now;
-            pauseAccumP1 += now - pauseStartP1;
-            resumeBGM();
-        }
-        showTimeReverseEffect1 = timeReverseActive1 && (now - timeReverseStart1 <= 10000);
-        showTimeReverseEffect2 = timeReverseActive2 && (now - timeReverseStart2 <= 10000);
-
-        if (areaClearActive1 && (now - areaClearStart1 <= 5000)) {
-            clearBulletsAroundPlayer(1);
-            showAreaClearEffect1 = true;
-        } else {
-            if (areaClearActive1) {
-                areaClearActive1 = false;
-                areaClearCooldownStart1 = now;
-                resumeBGM();
-            }
-            showAreaClearEffect1 = false;
-        }
-        if (areaClearActive2 && (now - areaClearStart2 <= 5000)) {
-            clearBulletsAroundPlayer(2);
-            showAreaClearEffect2 = true;
-        } else {
-            if (areaClearActive2) {
-                areaClearActive2 = false;
-                areaClearCooldownStart2 = now;
-                resumeBGM();
-            }
-            showAreaClearEffect2 = false;
-        }
-
-        if (!player1Dead) {
-            if (timeReverseActive2) {
-                reverseTickCounter1++;
-                if (reverseTickCounter1 % 2 == 0 && score1 > 0) score1--;
-            } else if (timeStopActive2) {
-                reverseTickCounter1 = 0;
-            } else if (timeReverseActive1) {
-                reverseTickCounter1 = 0;
-            } else {
-                score1++;
-                reverseTickCounter1 = 0;
-            }
-        } else {
-            reverseTickCounter1 = 0;
-        }
-        if (!player2Dead && !isSinglePlayer) {
-            if (timeReverseActive1) {
-                reverseTickCounter2++;
-                if (reverseTickCounter2 % 2 == 0 && score2 > 0) score2--;
-            } else if (timeStopActive1) {
-                reverseTickCounter2 = 0;
-            } else if (timeReverseActive2) {
-                reverseTickCounter2 = 0;
-            } else {
-                score2++;
-                reverseTickCounter2 = 0;
-            }
-        } else {
-            reverseTickCounter2 = 0;
-        }
-
-        if (!(timeStopActive1 || timeStopActive2 || timeReverseActive1 || timeReverseActive2)) {
-            updateBullets();
-            spawnBullets();
-            spawnDrops();
-            updateDrops();
-        }
-
-        if (!player1Dead && arena[heartX1][heartY1] == '*' && !shield1) {
-            lives1--;
-            if (lives1 <= 0) {
-                player1Dead = true;
-                db.saveHighScore(player1Id, score1);
-                highScore1 = db.getHighScore(player1Id);
-                JOptionPane.showMessageDialog(null, "\uD83D\uDC80 " + username1 + " Kehabisan nyawa! Game Over.\nScore: " + score1 + "\nHigh Score: " + highScore1);
-            }
-        }
-        if (!player2Dead && !isSinglePlayer && arena[heartX2][heartY2] == '*' && !shield2) {
-            lives2--;
-            if (lives2 <= 0) {
-                player2Dead = true;
-                db.saveHighScore(player2Id, score2);
-                highScore2 = db.getHighScore(player2Id);
-                JOptionPane.showMessageDialog(null, "\uD83D\uDC80 " + username2 + " Kehabisan nyawa! Game Over.\nScore: " + score2 + "\nHigh Score: " + highScore2);
-            }
-        }
-        if ((player1Dead && (player2Dead || isSinglePlayer))) {
-            JOptionPane.showMessageDialog(null, "\uD83C\uDFAE Game Over. Player mati.");
-            stopBGM();
-            resetGame();
-            playBGM("sounds/bgm.wav");
-        }
-
-        if (!player1Dead) arena[heartX1][heartY1] = '♥'; else arena[heartX1][heartY1] = ' ';
-        if (!player2Dead && !isSinglePlayer) arena[heartX2][heartY2] = '♦'; else arena[heartX2][heartY2] = ' ';
-    }
-
-    void spawnDrops() {
-        if (rand.nextInt(200) < 3) {
-            int col = rand.nextInt(COLS);
-            int type;
-            char icon;
-            int r = rand.nextInt(100);
-            if (r < 30) { type = 1; icon = '+'; }
-            else if (r < 55) { type = 2; icon = '⛨'; }
-            else if (r < 80) { type = 3; icon = '⇶'; }
-            else if (r < 90) { type = 4; icon = '⇄'; }
-            else { type = 5; icon = '✖'; }
-            drops.add(new Drop(0, col, icon, type));
-        }
-    }
-
-    void updateDrops() {
-        List<Drop> toRemove = new ArrayList<>();
-        for (Drop d : drops) {
-            if (rand.nextInt(2) == 0) {
-                if (d.x < ROWS - 1) d.x++;
-                else toRemove.add(d);
-            }
-            if (d.x == heartX1 && d.y == heartY1 && !player1Dead) {
-                applyDropEffect(1, d.type);
-                toRemove.add(d);
-            } else if (!isSinglePlayer && d.x == heartX2 && d.y == heartY2 && !player2Dead) {
-                applyDropEffect(2, d.type);
-                toRemove.add(d);
-            }
-        }
-        drops.removeAll(toRemove);
-    }
-
-    void applyDropEffect(int player, int type) {
-        if (player == 1) {
-            switch (type) {
-                case 1 -> { if (lives1 < 5) lives1++; }
-                case 2 -> { shield1 = true; shield1Start = System.currentTimeMillis(); }
-                case 3 -> { speed1 = true; speed1Start = System.currentTimeMillis(); }
-                case 4 -> { if (!isSinglePlayer && lives2 > 1) lives2--; else player2Dead = true; lives1++; }
-                case 5 -> { skillLock2 = true; skillLock2Start = System.currentTimeMillis(); }
-            }
-            db.logPowerup(player1Id, String.valueOf(type));
-        } else {
-            switch (type) {
-                case 1 -> { if (lives2 < 5) lives2++; }
-                case 2 -> { shield2 = true; shield2Start = System.currentTimeMillis(); }
-                case 3 -> { speed2 = true; speed2Start = System.currentTimeMillis(); }
-                case 4 -> { if (lives1 > 1) lives1--; else player1Dead = true; lives2++; }
-                case 5 -> { skillLock1 = true; skillLock1Start = System.currentTimeMillis(); }
-            }
-            db.logPowerup(player2Id, String.valueOf(type));
-        }
-    }
-
+    // Skill ready
     public boolean isTimeStopReady1() {
         long now = System.currentTimeMillis();
-        long pause = pauseAccumP1;
-        if (timeStopActive2 || timeReverseActive2) pause += now - pauseStartP1;
-        return !timeStopActive1 && (now - timeStopCooldownStart1 - pause >= skill1Cooldown) && !skillLock1;
+        long pause = player1.pauseAccum;
+        if (player2.timeStopActive || player2.timeReverseActive) pause += now - player1.pauseStart;
+        return !player1.timeStopActive && (now - player1.timeStopCooldownStart - pause >= skill1Cooldown) && !player1.skillLock;
     }
     public boolean isTimeStopReady2() {
         long now = System.currentTimeMillis();
-        long pause = pauseAccumP2;
-        if (timeStopActive1 || timeReverseActive1) pause += now - pauseStartP2;
-        return !timeStopActive2 && (now - timeStopCooldownStart2 - pause >= skill2Cooldown) && !skillLock2;
+        long pause = player2.pauseAccum;
+        if (player1.timeStopActive || player1.timeReverseActive) pause += now - player2.pauseStart;
+        return !player2.timeStopActive && (now - player2.timeStopCooldownStart - pause >= skill2Cooldown) && !player2.skillLock;
     }
     public boolean isAreaClearReady1() {
         long now = System.currentTimeMillis();
-        long pause = pauseAccumP1;
-        if (timeStopActive2 || timeReverseActive2) pause += now - pauseStartP1;
-        return !areaClearActive1 && (now - areaClearCooldownStart1 - pause >= skill1Cooldown) && !skillLock1;
+        long pause = player1.pauseAccum;
+        if (player2.timeStopActive || player2.timeReverseActive) pause += now - player1.pauseStart;
+        return !player1.areaClearActive && (now - player1.areaClearCooldownStart - pause >= skill1Cooldown) && !player1.skillLock;
     }
     public boolean isAreaClearReady2() {
         long now = System.currentTimeMillis();
-        long pause = pauseAccumP2;
-        if (timeStopActive1 || timeReverseActive1) pause += now - pauseStartP2;
-        return !areaClearActive2 && (now - areaClearCooldownStart2 - pause >= skill2Cooldown) && !skillLock2;
+        long pause = player2.pauseAccum;
+        if (player1.timeStopActive || player1.timeReverseActive) pause += now - player2.pauseStart;
+        return !player2.areaClearActive && (now - player2.areaClearCooldownStart - pause >= skill2Cooldown) && !player2.skillLock;
     }
     public boolean isTimeReverseReady1() {
         long now = System.currentTimeMillis();
-        long pause = pauseAccumP1;
-        if (timeStopActive2 || timeReverseActive2) pause += now - pauseStartP1;
-        return !timeReverseActive1 && (now - timeReverseCooldownStart1 - pause >= skill1Cooldown) && !skillLock1;
+        long pause = player1.pauseAccum;
+        if (player2.timeStopActive || player2.timeReverseActive) pause += now - player1.pauseStart;
+        return !player1.timeReverseActive && (now - player1.timeReverseCooldownStart - pause >= skill1Cooldown) && !player1.skillLock;
     }
     public boolean isTimeReverseReady2() {
         long now = System.currentTimeMillis();
-        long pause = pauseAccumP2;
-        if (timeStopActive1 || timeReverseActive1) pause += now - pauseStartP2;
-        return !timeReverseActive2 && (now - timeReverseCooldownStart2 - pause >= skill2Cooldown) && !skillLock2;
+        long pause = player2.pauseAccum;
+        if (player1.timeStopActive || player1.timeReverseActive) pause += now - player2.pauseStart;
+        return !player2.timeReverseActive && (now - player2.timeReverseCooldownStart - pause >= skill2Cooldown) && !player2.skillLock;
     }
 
-    void updateBullets() {
-        for (int i = ROWS - 2; i >= 0; i--) {
-            for (int j = 0; j < COLS; j++) {
-                if (arena[i][j] == '*') {
-                    if (arena[i + 1][j] == '♥' || arena[i + 1][j] == '♦') {
-                        arena[i + 1][j] = 'X';
-                    } else {
-                        arena[i + 1][j] = '*';
-                    }
-                    arena[i][j] = ' ';
-                }
-            }
-        }
-    }
-
-    void spawnBullets() {
-        for (int i = 0; i < COLS; i++) {
-            if (rand.nextInt(300) < 10) arena[0][i] = '*';
-        }
-    }
-
-    void clearBulletsAroundPlayer(int player) {
-        int cx = (player == 1) ? heartX1 : heartX2;
-        int cy = (player == 1) ? heartY1 : heartY2;
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                int x = cx + i, y = cy + j;
-                if (x >= 0 && x < ROWS && y >= 0 && y < COLS && arena[x][y] == '*') {
-                    arena[x][y] = ' ';
-                }
-            }
-        }
-    }
-
-    public boolean canMovePlayer1() {
-        return !timeStopActive2 && !timeReverseActive2;
-    }
-    public boolean canMovePlayer2() {
-        return !timeStopActive1 && !timeReverseActive1;
-    }
-
-    public void movePlayer1(int dx, int dy) {
-        if (!canMovePlayer1()) return;
-        int moveStep = speed1 ? 2 : 1;
-        int nx = heartX1 + dx * moveStep, ny = heartY1 + dy * moveStep;
-        if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLS) {
-            heartX1 = nx; heartY1 = ny;
-        }
-    }
-    public void movePlayer2(int dx, int dy) {
-        if (!canMovePlayer2()) return;
-        int moveStep = speed2 ? 2 : 1;
-        int nx = heartX2 + dx * moveStep, ny = heartY2 + dy * moveStep;
-        if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLS) {
-            heartX2 = nx; heartY2 = ny;
-        }
-    }
-
+    // Skill activation
     public void activateTimeStopForPlayer1() {
         if (isTimeStopReady1()) {
-            pauseBGM();
-            timeStopActive1 = true;
-            timeStopStart1 = System.currentTimeMillis();
-            pauseStartP2 = timeStopStart1;
-            playSound("sounds/" + skill1Sound);
+            audio.pauseBGM();
+            player1.timeStopActive = true;
+            player1.timeStopStart = System.currentTimeMillis();
+            player2.pauseStart = player1.timeStopStart;
+            audio.playSound("sounds/" + skill1Sound);
         }
     }
     public void activateTimeStopForPlayer2() {
         if (isTimeStopReady2()) {
-            pauseBGM();
-            timeStopActive2 = true;
-            timeStopStart2 = System.currentTimeMillis();
-            pauseStartP1 = timeStopStart2;
-            playSound("sounds/" + skill2Sound);
+            audio.pauseBGM();
+            player2.timeStopActive = true;
+            player2.timeStopStart = System.currentTimeMillis();
+            player1.pauseStart = player2.timeStopStart;
+            audio.playSound("sounds/" + skill2Sound);
         }
     }
     public void activateAreaClearForPlayer1() {
         if (isAreaClearReady1()) {
-            pauseBGM();
-            areaClearActive1 = true;
-            areaClearStart1 = System.currentTimeMillis();
-            showAreaClearEffect1 = true;
-            playSound("sounds/" + skill1Sound);
+            audio.pauseBGM();
+            player1.areaClearActive = true;
+            player1.areaClearStart = System.currentTimeMillis();
+            player1.showAreaClearEffect = true;
+            audio.playSound("sounds/" + skill1Sound);
         }
     }
     public void activateAreaClearForPlayer2() {
         if (isAreaClearReady2()) {
-            pauseBGM();
-            areaClearActive2 = true;
-            areaClearStart2 = System.currentTimeMillis();
-            showAreaClearEffect2 = true;
-            playSound("sounds/" + skill2Sound);
+            audio.pauseBGM();
+            player2.areaClearActive = true;
+            player2.areaClearStart = System.currentTimeMillis();
+            player2.showAreaClearEffect = true;
+            audio.playSound("sounds/" + skill2Sound);
         }
     }
     public void activateTimeReverseForPlayer1() {
         if (isTimeReverseReady1()) {
-            pauseBGM();
-            timeReverseActive1 = true;
-            timeReverseStart1 = System.currentTimeMillis();
-            pauseStartP2 = timeReverseStart1;
-            playSound("sounds/" + skill1Sound);
+            audio.pauseBGM();
+            player1.timeReverseActive = true;
+            player1.timeReverseStart = System.currentTimeMillis();
+            player2.pauseStart = player1.timeReverseStart;
+            audio.playSound("sounds/" + skill1Sound);
         }
     }
     public void activateTimeReverseForPlayer2() {
         if (isTimeReverseReady2()) {
-            pauseBGM();
-            timeReverseActive2 = true;
-            timeReverseStart2 = System.currentTimeMillis();
-            pauseStartP1 = timeReverseStart2;
-            playSound("sounds/" + skill2Sound);
+            audio.pauseBGM();
+            player2.timeReverseActive = true;
+            player2.timeReverseStart = System.currentTimeMillis();
+            player1.pauseStart = player2.timeReverseStart;
+            audio.playSound("sounds/" + skill2Sound);
         }
     }
     public void activateExtraHealthForPlayer1() {
-    if (lives1 < 5 && !extraHealthActive1) {
-        pauseBGM();
-        lives1++;
-        playSound("sounds/" + skill1Sound);
-        areaClearCooldownStart1 = System.currentTimeMillis();
-        extraHealthActive1 = true;
-        extraHealthStart1 = System.currentTimeMillis();
+        if (player1.lives < 5 && !player1.extraHealthActive) {
+            audio.pauseBGM();
+            player1.lives++;
+            audio.playSound("sounds/" + skill1Sound);
+            player1.areaClearCooldownStart = System.currentTimeMillis();
+            player1.extraHealthActive = true;
+            player1.extraHealthStart = System.currentTimeMillis();
         }
     }
     public void activateExtraHealthForPlayer2() {
-    if (lives2 < 5 && !extraHealthActive2) {
-        pauseBGM();
-        lives2++;
-        playSound("sounds/" + skill2Sound);
-        areaClearCooldownStart2 = System.currentTimeMillis();
-        extraHealthActive2 = true;
-        extraHealthStart2 = System.currentTimeMillis();
-       }
-    }
-
-    public void playBGM(String filePath) {
-        try {
-            File soundFile = new File(filePath);
-            if (!soundFile.exists()) {
-                System.out.println("File tidak ditemukan: " + filePath);
-                return;
-            }
-            AudioInputStream audioStream = AudioSystem.getAudioInputStream(soundFile);
-            bgmClip = AudioSystem.getClip();
-            bgmClip.open(audioStream);
-            bgmClip.loop(Clip.LOOP_CONTINUOUSLY);
-            bgmClip.start();
-            bgmPosition = 0;
-        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
-            e.printStackTrace();
+        if (player2.lives < 5 && !player2.extraHealthActive) {
+            audio.pauseBGM();
+            player2.lives++;
+            audio.playSound("sounds/" + skill2Sound);
+            player2.areaClearCooldownStart = System.currentTimeMillis();
+            player2.extraHealthActive = true;
+            player2.extraHealthStart = System.currentTimeMillis();
         }
     }
 
-    public void stopBGM() {
-        if (bgmClip != null) {
-            bgmClip.stop();
-            bgmClip.close();
-            bgmClip = null;
-            bgmPosition = 0;
+    // Drop effect
+    public void applyDropEffect(GamePlayer p, int type, int playerNum) {
+        if (type == 1) { // Extra life
+            if (p.lives < 5) p.lives++;
+        } else if (type == 2) { // Shield
+            p.shield = true; p.shieldStart = System.currentTimeMillis();
+        } else if (type == 3) { // Speed
+            p.speed = true; p.speedStart = System.currentTimeMillis();
+        } else if (type == 4) { // Damage enemy
+            if (playerNum == 1 && !isSinglePlayer && player2.lives > 1) player2.lives--;
+            else if (playerNum == 2 && player1.lives > 1) player1.lives--;
+            p.lives++;
+        } else if (type == 5) { // Lock enemy skill
+            if (playerNum == 1) { player2.skillLock = true; player2.skillLockStart = System.currentTimeMillis(); }
+            else { player1.skillLock = true; player1.skillLockStart = System.currentTimeMillis(); }
         }
+        powerup.logPowerup(playerNum == 1 ? player1Id : player2Id, String.valueOf(type));
     }
 
-    public void pauseBGM() {
-        if (bgmClip != null && bgmClip.isRunning()) {
-            bgmPosition = bgmClip.getMicrosecondPosition();
-            bgmClip.stop();
-        }
-    }
-
-    public void resumeBGM() {
-        if (bgmClip != null) {
-            bgmClip.setMicrosecondPosition(bgmPosition);
-            bgmClip.start();
-        }
-    }
-
-    public void playSound(String filePath) {
-        try {
-            File soundFile = new File(filePath);
-            if (!soundFile.exists()) {
-                System.out.println("File tidak ditemukan: " + filePath);
-                return;
-            }
-            AudioInputStream audioStream = AudioSystem.getAudioInputStream(soundFile);
-            Clip clip = AudioSystem.getClip();
-            clip.open(audioStream);
-            clip.start();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    // Audio wrapper
+    public void playBGM(String filePath) { audio.playBGM(filePath); }
+    public void stopBGM() { audio.stopBGM(); }
 }
