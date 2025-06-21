@@ -2,10 +2,13 @@ package model;
 
 import javax.sound.sampled.*;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 public class GameAudio {
     private Clip bgmClip;
     private long bgmPosition = 0;
+    private final List<Clip> effectClips = new ArrayList<>();
 
     public void playBGM(String filePath) {
         try {
@@ -53,8 +56,26 @@ public class GameAudio {
             Clip clip = AudioSystem.getClip();
             clip.open(audioStream);
             clip.start();
+            effectClips.add(clip);
+            // Remove from list when done
+            clip.addLineListener(event -> {
+                if (event.getType() == LineEvent.Type.STOP) {
+                    clip.close();
+                    effectClips.remove(clip);
+                }
+            });
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    // Stop all sounds (BGM + all effects)
+    public void stopAllSounds() {
+        stopBGM();
+        for (Clip clip : new ArrayList<>(effectClips)) {
+            if (clip.isRunning()) clip.stop();
+            clip.close();
+        }
+        effectClips.clear();
     }
 }

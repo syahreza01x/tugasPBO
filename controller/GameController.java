@@ -35,10 +35,10 @@ public class GameController implements KeyListener, ActionListener {
     public void keyPressed(KeyEvent e) {
         int key = e.getKeyCode();
 
-        // ESC: kembali ke homepage
+        // ESC: kembali ke homepage dan stop semua sound
         if (key == KeyEvent.VK_ESCAPE) {
             timer.stop();
-            model.stopBGM();
+            model.audio.stopAllSounds(); // stop BGM dan semua efek skill
             frame.setContentPane(homePage);
             frame.revalidate();
             homePage.refreshHighScore();
