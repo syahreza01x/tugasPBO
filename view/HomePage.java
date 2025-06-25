@@ -11,6 +11,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
 import java.util.*;
+import java.util.Properties;
+import java.io.*;
 
 public class HomePage extends JPanel {
     private final DatabaseManager db;
@@ -18,6 +20,7 @@ public class HomePage extends JPanel {
     private final JButton editButton = new JButton("Edit");
     private final JButton deleteButton = new JButton("Delete");
     private final JButton playButton = new JButton("Play");
+    private final JButton controlButton = new JButton("Setting");
     private final JFrame parentFrame;
 
     private PlayerTableModel tableModel;
@@ -113,6 +116,7 @@ public class HomePage extends JPanel {
         styleButton(editButton);
         styleButton(deleteButton);
         styleButton(playButton);
+        styleButton(controlButton);
 
         playButton.setEnabled(false);
         editButton.setEnabled(false);
@@ -122,6 +126,7 @@ public class HomePage extends JPanel {
         buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
         buttonPanel.add(playButton);
+        buttonPanel.add(controlButton);
 
         JPanel leftPanel = new JPanel();
         leftPanel.setLayout(new BorderLayout(10, 10));
@@ -237,11 +242,13 @@ public class HomePage extends JPanel {
             playListener.onPlay(ids, names);
         });
 
+        // --- Setting Kontrol ---
+        controlButton.addActionListener(e -> showControlSettingDialog());
+
         tableModel.loadPlayers();
         highScoreModel.loadHighScores();
     }
 
-    // Tambahkan method untuk styling button
     private void styleButton(JButton btn) {
         btn.setPreferredSize(new Dimension(100, 30));
         btn.setBackground(blueAccent);
@@ -258,6 +265,122 @@ public class HomePage extends JPanel {
         editButton.setEnabled(selected == 1);
         deleteButton.setEnabled(selected == 1);
     }
+
+private void showControlSettingDialog() {
+    Properties props = new Properties();
+    try (FileInputStream in = new FileInputStream("controls.properties")) {
+        props.load(in);
+    } catch (Exception ignored) {}
+
+    // Default values
+    String p1Up = props.getProperty("p1.up", "W");
+    String p1Down = props.getProperty("p1.down", "S");
+    String p1Left = props.getProperty("p1.left", "A");
+    String p1Right = props.getProperty("p1.right", "D");
+    String p1Skill = props.getProperty("p1.skill", "E");
+
+    String p2Up = props.getProperty("p2.up", "UP");
+    String p2Down = props.getProperty("p2.down", "DOWN");
+    String p2Left = props.getProperty("p2.left", "LEFT");
+    String p2Right = props.getProperty("p2.right", "RIGHT");
+    String p2Skill = props.getProperty("p2.skill", "END");
+
+    // Field setup
+    JTextField p1UpField = new JTextField(p1Up);
+    JTextField p1DownField = new JTextField(p1Down);
+    JTextField p1LeftField = new JTextField(p1Left);
+    JTextField p1RightField = new JTextField(p1Right);
+    JTextField p1SkillField = new JTextField(p1Skill);
+
+    JTextField p2UpField = new JTextField(p2Up);
+    JTextField p2DownField = new JTextField(p2Down);
+    JTextField p2LeftField = new JTextField(p2Left);
+    JTextField p2RightField = new JTextField(p2Right);
+    JTextField p2SkillField = new JTextField(p2Skill);
+
+    JTextField[] fields = {p1UpField, p1DownField, p1LeftField, p1RightField, p1SkillField,
+                           p2UpField, p2DownField, p2LeftField, p2RightField, p2SkillField};
+    for (JTextField f : fields) {
+        f.setBackground(bgPanel);
+        f.setForeground(textColor);
+        f.setCaretColor(textColor);
+        f.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
+    }
+
+    // Panel Player 1
+    JPanel panelP1 = new JPanel(new GridLayout(6, 2, 6, 4));
+    panelP1.setBackground(bgPanel);
+    panelP1.add(new JLabel("Player 1", SwingConstants.CENTER) {{
+        setForeground(blueAccent);
+        setFont(getFont().deriveFont(Font.BOLD));
+        setHorizontalAlignment(SwingConstants.CENTER);
+    }});
+    panelP1.add(new JLabel()); // Kosong biar rapi
+    panelP1.add(new JLabel("Up:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+    panelP1.add(p1UpField);
+    panelP1.add(new JLabel("Down:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+    panelP1.add(p1DownField);
+    panelP1.add(new JLabel("Left:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+    panelP1.add(p1LeftField);
+    panelP1.add(new JLabel("Right:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+    panelP1.add(p1RightField);
+    panelP1.add(new JLabel("Skill:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+    panelP1.add(p1SkillField);
+
+    // Panel Player 2
+    JPanel panelP2 = new JPanel(new GridLayout(6, 2, 6, 4));
+    panelP2.setBackground(bgPanel);
+    panelP2.add(new JLabel("Player 2", SwingConstants.CENTER) {{
+        setForeground(blueAccent);
+        setFont(getFont().deriveFont(Font.BOLD));
+        setHorizontalAlignment(SwingConstants.CENTER);
+    }});
+    panelP2.add(new JLabel());
+    panelP2.add(new JLabel("Up:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+    panelP2.add(p2UpField);
+    panelP2.add(new JLabel("Down:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+    panelP2.add(p2DownField);
+    panelP2.add(new JLabel("Left:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+    panelP2.add(p2LeftField);
+    panelP2.add(new JLabel("Right:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+    panelP2.add(p2RightField);
+    panelP2.add(new JLabel("Skill:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+    panelP2.add(p2SkillField);
+
+    // Panel utama 2 kolom
+    JPanel panelUtama = new JPanel(new GridLayout(1, 2, 20, 0));
+    panelUtama.setBackground(bgPanel);
+    panelUtama.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+    panelUtama.add(panelP1);
+    panelUtama.add(panelP2);
+
+    UIManager.put("OptionPane.background", bgPanel);
+    UIManager.put("Panel.background", bgPanel);
+    UIManager.put("OptionPane.messageForeground", textColor);
+
+    int result = JOptionPane.showConfirmDialog(this, panelUtama, "Setting Kontrol", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+    if (result == JOptionPane.OK_OPTION) {
+        props.setProperty("p1.up", p1UpField.getText().trim().toUpperCase());
+        props.setProperty("p1.down", p1DownField.getText().trim().toUpperCase());
+        props.setProperty("p1.left", p1LeftField.getText().trim().toUpperCase());
+        props.setProperty("p1.right", p1RightField.getText().trim().toUpperCase());
+        props.setProperty("p1.skill", p1SkillField.getText().trim().toUpperCase());
+
+        props.setProperty("p2.up", p2UpField.getText().trim().toUpperCase());
+        props.setProperty("p2.down", p2DownField.getText().trim().toUpperCase());
+        props.setProperty("p2.left", p2LeftField.getText().trim().toUpperCase());
+        props.setProperty("p2.right", p2RightField.getText().trim().toUpperCase());
+        props.setProperty("p2.skill", p2SkillField.getText().trim().toUpperCase());
+
+        try (FileOutputStream out = new FileOutputStream("controls.properties")) {
+            props.store(out, "Player Controls");
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Gagal menyimpan setting kontrol!");
+        }
+    }
+}
+
+
 
     private void showRegisterDialog() {
         JTextField usernameField = new JTextField();

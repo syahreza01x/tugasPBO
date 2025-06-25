@@ -23,16 +23,17 @@ public class GameModel {
     private int skill1Id, skill2Id;
     private int skill1Cooldown, skill2Cooldown;
     private String skill1Sound, skill2Sound;
+    public int p1UpKey, p1DownKey, p1LeftKey, p1RightKey, p1SkillKey;
+    public int p2UpKey, p2DownKey, p2LeftKey, p2RightKey, p2SkillKey;
 
     private int reverseTickCounter1 = 0, reverseTickCounter2 = 0;
 
-    // Untuk key binding
-    public static final int DEFAULT_TIME_STOP_KEY = java.awt.event.KeyEvent.VK_E;
-    public static final int DEFAULT_AREA_CLEAR_KEY = java.awt.event.KeyEvent.VK_END;
-    public int timeStopKey = DEFAULT_TIME_STOP_KEY;
-    public int areaClearKey = DEFAULT_AREA_CLEAR_KEY;
-
-    public GameModel(boolean isSinglePlayer, int timeStopKey, int areaClearKey, int player1Id, int player2Id, DatabaseManager db) {
+    public GameModel(
+        boolean isSinglePlayer,
+        int p1UpKey, int p1DownKey, int p1LeftKey, int p1RightKey, int p1SkillKey,
+        int p2UpKey, int p2DownKey, int p2LeftKey, int p2RightKey, int p2SkillKey,
+        int player1Id, int player2Id, DatabaseManager db
+    ) {
         this.isSinglePlayer = isSinglePlayer;
         this.player1Id = player1Id;
         this.player2Id = player2Id;
@@ -51,8 +52,17 @@ public class GameModel {
         this.skill1Sound = skill.skill1Sound;
         this.skill2Sound = skill.skill2Sound;
 
-        this.timeStopKey = timeStopKey;
-        this.areaClearKey = areaClearKey;
+        // Set key mapping
+        this.p1UpKey = p1UpKey;
+        this.p1DownKey = p1DownKey;
+        this.p1LeftKey = p1LeftKey;
+        this.p1RightKey = p1RightKey;
+        this.p1SkillKey = p1SkillKey;
+        this.p2UpKey = p2UpKey;
+        this.p2DownKey = p2DownKey;
+        this.p2LeftKey = p2LeftKey;
+        this.p2RightKey = p2RightKey;
+        this.p2SkillKey = p2SkillKey;
 
         this.arenaHelper = new GameArena(ROWS, COLS, arena);
 
@@ -62,35 +72,35 @@ public class GameModel {
     }
 
     public void resetGame() {
-    for (int i = 0; i < ROWS; i++) Arrays.fill(arena[i], ' ');
-    player1.x = ROWS - 2; player1.y = COLS / 4;
-    player2.x = ROWS - 2; player2.y = COLS - COLS / 4;
-    player1.score = 0; player2.score = 0;
-    player1.lives = 3; player2.lives = 3;
-    player1.dead = false; player2.dead = false;
-    player1.shield = player2.shield = false;
-    player1.speed = player2.speed = false;
-    player1.skillLock = player2.skillLock = false;
-    player1.showTimeStopEffect = player2.showTimeStopEffect = false;
-    player1.showTimeReverseEffect = player2.showTimeReverseEffect = false;
-    player1.showAreaClearEffect = player2.showAreaClearEffect = false;
-    player1.timeStopActive = player2.timeStopActive = false;
-    player1.timeReverseActive = player2.timeReverseActive = false;
-    player1.areaClearActive = player2.areaClearActive = false;
-    player1.pauseStart = player2.pauseStart = 0;
-    player1.pauseAccum = player2.pauseAccum = 0;
-    player1.extraHealthActive = player2.extraHealthActive = false;
-    player1.extraHealthStart = player2.extraHealthStart = 0;
-    reverseTickCounter1 = reverseTickCounter2 = 0;
-    drop.clear();
+        for (int i = 0; i < ROWS; i++) Arrays.fill(arena[i], ' ');
+        player1.x = ROWS - 2; player1.y = COLS / 4;
+        player2.x = ROWS - 2; player2.y = COLS - COLS / 4;
+        player1.score = 0; player2.score = 0;
+        player1.lives = 3; player2.lives = 3;
+        player1.dead = false; player2.dead = false;
+        player1.shield = player2.shield = false;
+        player1.speed = player2.speed = false;
+        player1.skillLock = player2.skillLock = false;
+        player1.showTimeStopEffect = player2.showTimeStopEffect = false;
+        player1.showTimeReverseEffect = player2.showTimeReverseEffect = false;
+        player1.showAreaClearEffect = player2.showAreaClearEffect = false;
+        player1.timeStopActive = player2.timeStopActive = false;
+        player1.timeReverseActive = player2.timeReverseActive = false;
+        player1.areaClearActive = player2.areaClearActive = false;
+        player1.pauseStart = player2.pauseStart = 0;
+        player1.pauseAccum = player2.pauseAccum = 0;
+        player1.extraHealthActive = player2.extraHealthActive = false;
+        player1.extraHealthStart = player2.extraHealthStart = 0;
+        reverseTickCounter1 = reverseTickCounter2 = 0;
+        drop.clear();
 
-    player1.timeStopCooldownStart = -skill1Cooldown;
-    player1.areaClearCooldownStart = -skill1Cooldown;
-    player1.timeReverseCooldownStart = -skill1Cooldown;
-    player2.timeStopCooldownStart = -skill2Cooldown;
-    player2.areaClearCooldownStart = -skill2Cooldown;
-    player2.timeReverseCooldownStart = -skill2Cooldown;
-}
+        player1.timeStopCooldownStart = -skill1Cooldown;
+        player1.areaClearCooldownStart = -skill1Cooldown;
+        player1.timeReverseCooldownStart = -skill1Cooldown;
+        player2.timeStopCooldownStart = -skill2Cooldown;
+        player2.areaClearCooldownStart = -skill2Cooldown;
+        player2.timeReverseCooldownStart = -skill2Cooldown;
+    }
 
     public void updateGame() {
         long now = System.currentTimeMillis();
@@ -197,21 +207,21 @@ public class GameModel {
     }
 
     public void movePlayer1(int dx, int dy) {
-    // Hanya batasi jika lawan sedang time stop/reverse
-    if (!isSinglePlayer && (player2.timeStopActive || player2.timeReverseActive)) return;
-    int moveStep = player1.speed ? 2 : 1;
-    int nx = player1.x + dx * moveStep, ny = player1.y + dy * moveStep;
-    if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLS) {
-        player1.x = nx; player1.y = ny;
-        }   
+        // Hanya batasi jika lawan sedang time stop/reverse
+        if (!isSinglePlayer && (player2.timeStopActive || player2.timeReverseActive)) return;
+        int moveStep = player1.speed ? 2 : 1;
+        int nx = player1.x + dx * moveStep, ny = player1.y + dy * moveStep;
+        if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLS) {
+            player1.x = nx; player1.y = ny;
+        }
     }
     public void movePlayer2(int dx, int dy) {
-    // Hanya batasi jika lawan sedang time stop/reverse
-    if (player1.timeStopActive || player1.timeReverseActive) return;
-    int moveStep = player2.speed ? 2 : 1;
-    int nx = player2.x + dx * moveStep, ny = player2.y + dy * moveStep;
-    if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLS) {
-        player2.x = nx; player2.y = ny;
+        // Hanya batasi jika lawan sedang time stop/reverse
+        if (player1.timeStopActive || player1.timeReverseActive) return;
+        int moveStep = player2.speed ? 2 : 1;
+        int nx = player2.x + dx * moveStep, ny = player2.y + dy * moveStep;
+        if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLS) {
+            player2.x = nx; player2.y = ny;
         }
     }
     // Skill getter/setter

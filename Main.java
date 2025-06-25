@@ -4,8 +4,23 @@ import view.GameView;
 import view.HomePage;
 import controller.GameController;
 import javax.swing.*;
+import java.awt.event.KeyEvent;
+import java.util.Properties;
+import java.io.FileInputStream;
 
 public class Main {
+    public static int getKeyCode(String key) {
+        // Untuk key spesial
+        return switch (key.toUpperCase()) {
+            case "UP" -> KeyEvent.VK_UP;
+            case "DOWN" -> KeyEvent.VK_DOWN;
+            case "LEFT" -> KeyEvent.VK_LEFT;
+            case "RIGHT" -> KeyEvent.VK_RIGHT;
+            case "END" -> KeyEvent.VK_END;
+            default -> key.length() == 1 ? KeyEvent.getExtendedKeyCodeForChar(key.charAt(0)) : 0;
+        };
+    }
+
     public static void main(String[] args) {
         DatabaseManager db = new DatabaseManager();
         db.connect();
@@ -25,14 +40,34 @@ public class Main {
                 default -> 1000 / 10;
             };
 
-            int timeStopKey = GameModel.DEFAULT_TIME_STOP_KEY;
-            int areaClearKey = GameModel.DEFAULT_AREA_CLEAR_KEY;
+            // Ambil setting kontrol dari file lokal
+            Properties props = new Properties();
+            try (FileInputStream in = new FileInputStream("controls.properties")) {
+                props.load(in);
+            } catch (Exception ignored) {}
+
+            // Player 1
+            int p1Up = getKeyCode(props.getProperty("p1.up", "W"));
+            int p1Down = getKeyCode(props.getProperty("p1.down", "S"));
+            int p1Left = getKeyCode(props.getProperty("p1.left", "A"));
+            int p1Right = getKeyCode(props.getProperty("p1.right", "D"));
+            int p1Skill = getKeyCode(props.getProperty("p1.skill", "E"));
+            // Player 2
+            int p2Up = getKeyCode(props.getProperty("p2.up", "UP"));
+            int p2Down = getKeyCode(props.getProperty("p2.down", "DOWN"));
+            int p2Left = getKeyCode(props.getProperty("p2.left", "LEFT"));
+            int p2Right = getKeyCode(props.getProperty("p2.right", "RIGHT"));
+            int p2Skill = getKeyCode(props.getProperty("p2.skill", "END"));
 
             boolean isSinglePlayer = playerIds.size() == 1;
             int player1Id = playerIds.get(0);
             int player2Id = isSinglePlayer ? -1 : playerIds.get(1);
 
-            GameModel model = new GameModel(isSinglePlayer, timeStopKey, areaClearKey, player1Id, player2Id, db);
+            GameModel model = new GameModel(
+                isSinglePlayer, p1Up, p1Down, p1Left, p1Right, p1Skill,
+                p2Up, p2Down, p2Left, p2Right, p2Skill,
+                player1Id, player2Id, db
+            );
             model.player1.username = usernames.get(0);
             if (!isSinglePlayer) model.player2.username = usernames.get(1);
 
