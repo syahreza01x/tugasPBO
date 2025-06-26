@@ -38,8 +38,8 @@ public class HomePage extends JPanel {
     private final Color tableRow = new Color(38, 42, 56);
 
     public interface PlayListener {
-        void onPlay(List<Integer> playerIds, List<String> usernames);
-    }
+        void onPlay(List<Integer> playerIds, List<String> usernames, boolean specialMode);
+}
 
     public HomePage(DatabaseManager db, JFrame parentFrame, PlayListener playListener) {
         this.db = db;
@@ -230,17 +230,25 @@ public class HomePage extends JPanel {
             }
         });
 
-        playButton.addActionListener(e -> {
-            List<Integer> ids = new ArrayList<>();
-            List<String> names = new ArrayList<>();
-            for (int i = 0; i < tableModel.getRowCount(); i++) {
-                if (tableModel.isSelected(i)) {
-                    ids.add(tableModel.getPlayerId(i));
-                    names.add(tableModel.getPlayerName(i));
-                }
-            }
-            playListener.onPlay(ids, names);
-        });
+    playButton.addActionListener(e -> {
+    List<Integer> ids = new ArrayList<>();
+    List<String> names = new ArrayList<>();
+    for (int i = 0; i < tableModel.getRowCount(); i++) {
+        if (tableModel.isSelected(i)) {
+            ids.add(tableModel.getPlayerId(i));
+            names.add(tableModel.getPlayerName(i));
+        }
+    }
+    // Jika solo, tampilkan pilihan mode
+    if (ids.size() == 1) {
+        String[] mode = {"Normal Mode", "Special Mode"};
+        int modeChoice = JOptionPane.showOptionDialog(this, "Pilih Mode:", "Mode",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, mode, mode[0]);
+        playListener.onPlay(ids, names, modeChoice == 1); // true jika special mode
+    } else {
+        playListener.onPlay(ids, names, false);
+    }
+});
 
         // --- Setting Kontrol ---
         controlButton.addActionListener(e -> showControlSettingDialog());
