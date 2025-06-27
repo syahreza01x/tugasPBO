@@ -26,10 +26,10 @@
 
 | Nama Skill    | Efek                                                                                   |
 |---------------|----------------------------------------------------------------------------------------|
-| Time Stop     | Menghentikan pergerakan peluru untuk sementara waktu. <br>Cooldown lawan akan terhenti (pause) selama efek aktif, sedangkan cooldown pengguna tetap berjalan normal. |
-| Area Clear    | Menghapus peluru di sekitar karakter.                                                  |
-| Time Reverse  | Membalikkan skor lawan secara perlahan. <br>Cooldown lawan akan terhenti (pause) selama efek aktif, sedangkan cooldown pengguna tetap berjalan normal. |
-| Extra Health  | Menambah nyawa.                                                                        |
+| The World     | Menghentikan pergerakan peluru untuk sementara waktu. <br>Cooldown lawan akan terhenti (pause) selama efek aktif, sedangkan cooldown pengguna tetap berjalan normal. |
+| Star Platinum    | Menghapus peluru di sekitar karakter.                                                  |
+| Made in Heaven  | Membalikkan skor lawan secara perlahan. <br>Cooldown lawan akan terhenti (pause) selama efek aktif, sedangkan cooldown pengguna tetap berjalan normal. |
+| Crazy Diamond  | Menambah nyawa.                                                                        |
 
 ---
 
