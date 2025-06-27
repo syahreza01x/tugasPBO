@@ -63,6 +63,19 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
     private BufferedImage bossImg1, bossImg2, bossImg3, bossScareImg, bossBadImg, bossGoodImg;
     private BufferedImage bossAfter1Img, bossAfter2Img, bossAfter3Img, bossAfter4Img;
 
+    // Attack effect
+    private ImageIcon attackEffectImg;
+    private boolean showAttackEffect = false;
+    private int attackEffectTick = 0;
+    private final int attackEffectDuration = 24; // sekitar 0.5 detik (24*20ms)
+    private boolean pendingHitEffect = false;
+    private int pendingHitDamage = 0;
+
+    // Boss merah effect
+    private boolean bossRedEffect = false;
+    private int bossRedEffectTick = 0;
+    private final int bossRedEffectDuration = 15; // sekitar 0.3 detik (15*20ms)
+
     // Final boss phase
     private boolean bossIntro = false;
     private boolean bossIntroDone = false;
@@ -122,6 +135,12 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             }
         }
 
+        // Load attack effect gif
+        try {
+            attackEffectImg = new ImageIcon("assets/attackPlayer.gif");
+        } catch (Exception ex) {
+            attackEffectImg = null;
+        }
     }
 
     @Override
@@ -266,12 +285,34 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             else if (bossHP <= 30) bossImg = bossImg2;
             int bossW = cw * 10, bossH = ch * 10;
             int px = bossY * cw, py = bossX * ch;
-            if (bossImg != null)
-                g.drawImage(bossImg, px, py, bossW, bossH, null);
-            else {
-                g.setColor(Color.WHITE);
-                g.fillRect(px, py, bossW, bossH);
+
+            if (bossRedEffect) {
+                BufferedImage redBoss = new BufferedImage(bossW, bossH, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g2 = redBoss.createGraphics();
+                if (bossImg != null)
+                    g2.drawImage(bossImg, 0, 0, bossW, bossH, null);
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP, 0.5f));
+                g2.setColor(Color.RED);
+                g2.fillRect(0, 0, bossW, bossH);
+                g2.dispose();
+                g.drawImage(redBoss, px, py, null);
+            } else {
+                if (bossImg != null)
+                    g.drawImage(bossImg, px, py, bossW, bossH, null);
+                else {
+                    g.setColor(Color.WHITE);
+                    g.fillRect(px, py, bossW, bossH);
+                }
             }
+
+            // Efek serangan (GIF) kecil di tengah bos
+            if (showAttackEffect && attackEffectImg != null) {
+                int effW = 120, effH = 120;
+                int effX = px + bossW/2 - effW/2;
+                int effY = py + bossH/2 - effH/2;
+                g.drawImage(attackEffectImg.getImage(), effX, effY, effW, effH, null);
+            }
+
             int barW = 400, barH = 36;
             int barX = getWidth()/2 - barW/2, barY = 20;
             g.setColor(Color.DARK_GRAY);
@@ -369,9 +410,8 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                 }, 1500);
                 return;
             }
-            // Sedikit lebih sulit: spawn tiap 5 tick, 2-3 peluru
             if (bulletTick % 5 == 0) {
-                int peluruCount = 2 + rand.nextInt(2); // 2 atau 3 peluru
+                int peluruCount = 2 + rand.nextInt(2);
                 for (int i = 0; i < peluruCount; i++) {
                     int y = rand.nextInt(COLS);
                     bullets.add(new Bullet(0, y, 1, 0, false));
@@ -414,7 +454,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                 if (bossAttackTick % 18 == 0 && bossAttackTick <= 72) {
                     spawnBossPattern(bossAttackPattern, bossAttackTargetX, bossAttackTargetY);
                 }
-                // Peluru bos bergerak tiap 2 tick
                 if (bossAttackTick % 2 == 0) {
                     List<Bullet> toRemove = new ArrayList<>();
                     for (Bullet b : bossBullets) {
@@ -478,7 +517,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                     }
                     bossBullets.removeAll(toRemove);
                 }
-                // Ganti giliran hanya jika semua peluru sudah habis
                 if (bossAttackTick > 90 && bossBullets.isEmpty()) {
                     bossAttackTick = 0;
                     bossBullets.clear();
@@ -502,6 +540,62 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                 }
             }
         }
+
+        // Update efek serangan dan efek merah bos
+        if (showAttackEffect) {
+            attackEffectTick++;
+            if (attackEffectTick > attackEffectDuration) {
+                showAttackEffect = false;
+                attackEffectTick = 0;
+                // Setelah animasi serangan selesai, baru trigger efek hit
+                if (pendingHitEffect) {
+                    bossRedEffect = true;
+                    bossRedEffectTick = 0;
+                    playHitMusic();
+                    bossHP -= pendingHitDamage;
+                    if (bossHP <= 0) {
+                        bossHP = 0;
+                        bossDead = true;
+                        stopBossMusic();
+                        blackScreen = true;
+                        attackResult = "";
+                        timer.stop();
+                        new java.util.Timer().schedule(new java.util.TimerTask() {
+                            public void run() {
+                                blackScreen = false;
+                                bossAfterDialog = true;
+                                bossAfterDialogStep = 0;
+                                bossAfterDialogMax = 1;
+                                bossChoice = false;
+                                bossKilled = false;
+                                bossSpared = false;
+                                bossBranchDialog = false;
+                                bossBranchDialogStep = 0;
+                                bossBranchDialogMax = 1;
+                                bossBranchDialogDone = false;
+                                bossBranchBlack = false;
+                                bossBranchBlackDone = false;
+                                stopHitMusic();
+                                playDialogMusic();
+                                repaint();
+                            }
+                        }, 1500);
+                        pendingHitEffect = false;
+                        pendingHitDamage = 0;
+                        return;
+                    }
+                    pendingHitEffect = false;
+                    pendingHitDamage = 0;
+                }
+            }
+        }
+        if (bossRedEffect) {
+            bossRedEffectTick++;
+            if (bossRedEffectTick > bossRedEffectDuration) {
+                bossRedEffect = false;
+            }
+        }
+
         repaint();
     }
 
@@ -691,53 +785,19 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             attackBarPos = 0;
             attackBarDir = 1;
 
-            stopAttackMusic();
-            try {
-                AudioInputStream audioIn = AudioSystem.getAudioInputStream(new File("sounds/attack.wav"));
-                attackMusic = AudioSystem.getClip();
-                attackMusic.open(audioIn);
-                attackMusic.addLineListener(event -> {
-                    if (event.getType() == LineEvent.Type.STOP) {
-                        attackMusic.close();
-                        if (!color.equals("MISS")) {
-                            bossHP -= dmg;
-                            playHitMusic();
-                        }
-                        if (bossHP <= 0) {
-                            bossHP = 0;
-                            bossDead = true;
-                            stopBossMusic();
-                            blackScreen = true;
-                            attackResult = "";
-                            timer.stop();
-                            new java.util.Timer().schedule(new java.util.TimerTask() {
-                                public void run() {
-                                    blackScreen = false;
-                                    bossAfterDialog = true;
-                                    bossAfterDialogStep = 0;
-                                    bossAfterDialogMax = 1;
-                                    bossChoice = false;
-                                    bossKilled = false;
-                                    bossSpared = false;
-                                    bossBranchDialog = false;
-                                    bossBranchDialogStep = 0;
-                                    bossBranchDialogMax = 1;
-                                    bossBranchDialogDone = false;
-                                    bossBranchBlack = false;
-                                    bossBranchBlackDone = false;
-                                    stopHitMusic();
-                                    playDialogMusic();
-                                    repaint();
-                                }
-                            }, 1500);
-                            return;
-                        }
-                        attackResult = "";
-                        repaint();
-                    }
-                });
-                attackMusic.start();
-            } catch (Exception ex) {}
+            // Efek serangan dan pending hit
+            if (!color.equals("MISS")) {
+                showAttackEffect = true;
+                attackEffectTick = 0;
+                pendingHitEffect = true;
+                pendingHitDamage = dmg;
+            }
+
+            // Putar attack.wav bersamaan dengan efek
+            playAttackMusic();
+
+            // Damage dan hit.wav diberikan setelah animasi selesai (lihat actionPerformed)
+            attackResult = "";
             repaint();
             return;
         }
