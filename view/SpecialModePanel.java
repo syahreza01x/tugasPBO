@@ -82,6 +82,8 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
     private long bossIntroStart = 0;
 
     // After boss death
+    private boolean showMonsterText = false;
+    private long monsterTextStartTime = 0;
     private boolean bossAfterDialog = false;
     private int bossAfterDialogStep = 0;
     private int bossAfterDialogMax = 1;
@@ -154,6 +156,16 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
         if (blackScreen || bossBranchBlack) {
             g.setColor(Color.BLACK);
             g.fillRect(0, 0, getWidth(), getHeight());
+            // Tambahan: gambar MONSTER di layar hitam jika perlu
+            if (showMonsterText) {
+                g.setColor(Color.RED);
+                g.setFont(new Font("Arial", Font.BOLD, 100));
+                String text = "MONSTER";
+                int textWidth = g.getFontMetrics().stringWidth(text);
+                int x = getWidth()/2 - textWidth/2;
+                int y = getHeight()/2 + 40;
+                g.drawString(text, x, y);
+            }
             if (bossBranchBlackDone) {
                 g.setColor(Color.WHITE);
                 g.setFont(new Font("Arial", Font.BOLD, 80));
@@ -366,6 +378,7 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                 g.drawString(attackResult, barX + barW + 20, barY + 24);
             }
         }
+        // (JANGAN gambar MONSTER di sini, sudah digambar di layar hitam di atas)
     }
 
     @Override
@@ -693,12 +706,26 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                         AudioInputStream audioIn = AudioSystem.getAudioInputStream(new File("sounds/laughBad.wav"));
                         laughBadMusic = AudioSystem.getClip();
                         laughBadMusic.open(audioIn);
+
                         laughBadMusic.addLineListener(event -> {
                             if (event.getType() == LineEvent.Type.STOP) {
                                 laughBadMusic.close();
                                 System.exit(0);
                             }
                         });
+
+                        new Thread(() -> {
+                            try {
+                                Thread.sleep(10000); // 10 detik
+                                showMonsterText = true;
+                                monsterTextStartTime = System.currentTimeMillis();
+                                repaint();
+                                Thread.sleep(2500); // tampil 2.5 detik
+                                showMonsterText = false;
+                                repaint();
+                            } catch (Exception ex) {}
+                        }).start();
+
                         laughBadMusic.start();
                     } catch (Exception ex) {
                         System.exit(0);
