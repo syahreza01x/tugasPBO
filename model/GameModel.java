@@ -272,6 +272,8 @@ public class GameModel {
 
     // Skill activation
     public void activateTimeStopForPlayer1() {
+        // Tidak bisa jika lawan sedang time stop/reverse
+        if (player2.timeStopActive || player2.timeReverseActive) return;
         if (isTimeStopReady1()) {
             audio.pauseBGM();
             player1.timeStopActive = true;
@@ -281,6 +283,7 @@ public class GameModel {
         }
     }
     public void activateTimeStopForPlayer2() {
+        if (player1.timeStopActive || player1.timeReverseActive) return;
         if (isTimeStopReady2()) {
             audio.pauseBGM();
             player2.timeStopActive = true;
@@ -290,6 +293,7 @@ public class GameModel {
         }
     }
     public void activateAreaClearForPlayer1() {
+        if (player2.timeStopActive || player2.timeReverseActive) return;
         if (isAreaClearReady1()) {
             audio.pauseBGM();
             player1.areaClearActive = true;
@@ -299,6 +303,7 @@ public class GameModel {
         }
     }
     public void activateAreaClearForPlayer2() {
+        if (player1.timeStopActive || player1.timeReverseActive) return;
         if (isAreaClearReady2()) {
             audio.pauseBGM();
             player2.areaClearActive = true;
@@ -308,6 +313,7 @@ public class GameModel {
         }
     }
     public void activateTimeReverseForPlayer1() {
+        if (player2.timeStopActive || player2.timeReverseActive) return;
         if (isTimeReverseReady1()) {
             audio.pauseBGM();
             player1.timeReverseActive = true;
@@ -317,6 +323,7 @@ public class GameModel {
         }
     }
     public void activateTimeReverseForPlayer2() {
+        if (player1.timeStopActive || player1.timeReverseActive) return;
         if (isTimeReverseReady2()) {
             audio.pauseBGM();
             player2.timeReverseActive = true;
@@ -326,6 +333,7 @@ public class GameModel {
         }
     }
     public void activateExtraHealthForPlayer1() {
+        if (player2.timeStopActive || player2.timeReverseActive) return;
         if (player1.lives < 5 && !player1.extraHealthActive) {
             audio.pauseBGM();
             player1.lives++;
@@ -336,6 +344,7 @@ public class GameModel {
         }
     }
     public void activateExtraHealthForPlayer2() {
+        if (player1.timeStopActive || player1.timeReverseActive) return;
         if (player2.lives < 5 && !player2.extraHealthActive) {
             audio.pauseBGM();
             player2.lives++;

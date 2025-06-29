@@ -39,7 +39,7 @@ public class HomePage extends JPanel {
 
     public interface PlayListener {
         void onPlay(List<Integer> playerIds, List<String> usernames, boolean specialMode);
-}
+    }
 
     public HomePage(DatabaseManager db, JFrame parentFrame, PlayListener playListener) {
         this.db = db;
@@ -75,8 +75,31 @@ public class HomePage extends JPanel {
         th.setForeground(blueAccent);
         th.setReorderingAllowed(false);
 
-        // Pilih (checkbox) renderer
+        // --- Custom Icon untuk ceklis warna ---
+        class ColoredCheckBoxIcon implements Icon {
+            private final Color color;
+            public ColoredCheckBoxIcon(Color color) { this.color = color; }
+            @Override
+            public void paintIcon(Component c, Graphics g, int x, int y) {
+                g.setColor(Color.WHITE);
+                g.fillRect(x, y, getIconWidth(), getIconHeight());
+                g.setColor(Color.GRAY);
+                g.drawRect(x, y, getIconWidth()-1, getIconHeight()-1);
+                if (((JCheckBox) c).isSelected()) {
+                    g.setColor(color);
+                    g.drawLine(x+3, y+7, x+7, y+11);
+                    g.drawLine(x+7, y+11, x+13, y+3);
+                    g.drawLine(x+3, y+8, x+7, y+12);
+                    g.drawLine(x+7, y+12, x+13, y+4);
+                }
+            }
+            @Override public int getIconWidth() { return 16; }
+            @Override public int getIconHeight() { return 16; }
+        }
+
+        // Pilih (checkbox) renderer dengan warna sesuai urutan ceklis
         table.getColumnModel().getColumn(3).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
                                                            boolean hasFocus, int row, int column) {
                 JCheckBox checkBox = new JCheckBox();
@@ -84,11 +107,25 @@ public class HomePage extends JPanel {
                 checkBox.setHorizontalAlignment(SwingConstants.CENTER);
                 checkBox.setEnabled(true);
                 checkBox.setBackground(isSelected ? blueAccent.darker() : tableRow);
+
+                // Ambil urutan ceklis dari model
+                List<Integer> checkedOrder = ((PlayerTableModel) table.getModel()).checkedOrder;
+                if (checkBox.isSelected()) {
+                    if (!checkedOrder.isEmpty() && checkedOrder.get(0) == row) {
+                        checkBox.setIcon(new ColoredCheckBoxIcon(Color.RED)); // Player 1
+                    } else if (checkedOrder.size() > 1 && checkedOrder.get(1) == row) {
+                        checkBox.setIcon(new ColoredCheckBoxIcon(new Color(0, 120, 215))); // Player 2
+                    } else {
+                        checkBox.setIcon(new ColoredCheckBoxIcon(Color.GRAY));
+                    }
+                } else {
+                    checkBox.setIcon(new ColoredCheckBoxIcon(Color.GRAY));
+                }
                 return checkBox;
             }
         });
 
-        // Agar klik checkbox langsung aktif
+        // Agar klik checkbox langsung aktif dan urutan ceklis sesuai waktu klik
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -230,25 +267,25 @@ public class HomePage extends JPanel {
             }
         });
 
-    playButton.addActionListener(e -> {
-    List<Integer> ids = new ArrayList<>();
-    List<String> names = new ArrayList<>();
-    for (int i = 0; i < tableModel.getRowCount(); i++) {
-        if (tableModel.isSelected(i)) {
-            ids.add(tableModel.getPlayerId(i));
-            names.add(tableModel.getPlayerName(i));
-        }
-    }
-    // Jika solo, tampilkan pilihan mode
-    if (ids.size() == 1) {
-        String[] mode = {"Normal Mode", "Special Mode"};
-        int modeChoice = JOptionPane.showOptionDialog(this, "Pilih Mode:", "Mode",
-                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, mode, mode[0]);
-        playListener.onPlay(ids, names, modeChoice == 1); // true jika special mode
-    } else {
-        playListener.onPlay(ids, names, false);
-    }
-});
+        playButton.addActionListener(e -> {
+            // Urutkan player sesuai urutan ceklis (player 1 = ceklis pertama, player 2 = ceklis kedua)
+            List<Integer> checkedRows = tableModel.getSelectedIndexes(); // urutan sesuai waktu ceklis
+            List<Integer> ids = new ArrayList<>();
+            List<String> names = new ArrayList<>();
+            for (int idx : checkedRows) {
+                ids.add(tableModel.getPlayerId(idx));
+                names.add(tableModel.getPlayerName(idx));
+            }
+            // Jika solo, tampilkan pilihan mode
+            if (ids.size() == 1) {
+                String[] mode = {"Normal Mode", "Special Mode"};
+                int modeChoice = JOptionPane.showOptionDialog(this, "Pilih Mode:", "Mode",
+                        JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, mode, mode[0]);
+                playListener.onPlay(ids, names, modeChoice == 1); // true jika special mode
+            } else {
+                playListener.onPlay(ids, names, false);
+            }
+        });
 
         // --- Setting Kontrol ---
         controlButton.addActionListener(e -> showControlSettingDialog());
@@ -274,121 +311,119 @@ public class HomePage extends JPanel {
         deleteButton.setEnabled(selected == 1);
     }
 
-private void showControlSettingDialog() {
-    Properties props = new Properties();
-    try (FileInputStream in = new FileInputStream("controls.properties")) {
-        props.load(in);
-    } catch (Exception ignored) {}
+    private void showControlSettingDialog() {
+        Properties props = new Properties();
+        try (FileInputStream in = new FileInputStream("controls.properties")) {
+            props.load(in);
+        } catch (Exception ignored) {}
 
-    // Default values
-    String p1Up = props.getProperty("p1.up", "W");
-    String p1Down = props.getProperty("p1.down", "S");
-    String p1Left = props.getProperty("p1.left", "A");
-    String p1Right = props.getProperty("p1.right", "D");
-    String p1Skill = props.getProperty("p1.skill", "E");
+        // Default values
+        String p1Up = props.getProperty("p1.up", "W");
+        String p1Down = props.getProperty("p1.down", "S");
+        String p1Left = props.getProperty("p1.left", "A");
+        String p1Right = props.getProperty("p1.right", "D");
+        String p1Skill = props.getProperty("p1.skill", "E");
 
-    String p2Up = props.getProperty("p2.up", "UP");
-    String p2Down = props.getProperty("p2.down", "DOWN");
-    String p2Left = props.getProperty("p2.left", "LEFT");
-    String p2Right = props.getProperty("p2.right", "RIGHT");
-    String p2Skill = props.getProperty("p2.skill", "END");
+        String p2Up = props.getProperty("p2.up", "UP");
+        String p2Down = props.getProperty("p2.down", "DOWN");
+        String p2Left = props.getProperty("p2.left", "LEFT");
+        String p2Right = props.getProperty("p2.right", "RIGHT");
+        String p2Skill = props.getProperty("p2.skill", "END");
 
-    // Field setup
-    JTextField p1UpField = new JTextField(p1Up);
-    JTextField p1DownField = new JTextField(p1Down);
-    JTextField p1LeftField = new JTextField(p1Left);
-    JTextField p1RightField = new JTextField(p1Right);
-    JTextField p1SkillField = new JTextField(p1Skill);
+        // Field setup
+        JTextField p1UpField = new JTextField(p1Up);
+        JTextField p1DownField = new JTextField(p1Down);
+        JTextField p1LeftField = new JTextField(p1Left);
+        JTextField p1RightField = new JTextField(p1Right);
+        JTextField p1SkillField = new JTextField(p1Skill);
 
-    JTextField p2UpField = new JTextField(p2Up);
-    JTextField p2DownField = new JTextField(p2Down);
-    JTextField p2LeftField = new JTextField(p2Left);
-    JTextField p2RightField = new JTextField(p2Right);
-    JTextField p2SkillField = new JTextField(p2Skill);
+        JTextField p2UpField = new JTextField(p2Up);
+        JTextField p2DownField = new JTextField(p2Down);
+        JTextField p2LeftField = new JTextField(p2Left);
+        JTextField p2RightField = new JTextField(p2Right);
+        JTextField p2SkillField = new JTextField(p2Skill);
 
-    JTextField[] fields = {p1UpField, p1DownField, p1LeftField, p1RightField, p1SkillField,
-                           p2UpField, p2DownField, p2LeftField, p2RightField, p2SkillField};
-    for (JTextField f : fields) {
-        f.setBackground(bgPanel);
-        f.setForeground(textColor);
-        f.setCaretColor(textColor);
-        f.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
-    }
+        JTextField[] fields = {p1UpField, p1DownField, p1LeftField, p1RightField, p1SkillField,
+                p2UpField, p2DownField, p2LeftField, p2RightField, p2SkillField};
+        for (JTextField f : fields) {
+            f.setBackground(bgPanel);
+            f.setForeground(textColor);
+            f.setCaretColor(textColor);
+            f.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
+        }
 
-    // Panel Player 1
-    JPanel panelP1 = new JPanel(new GridLayout(6, 2, 6, 4));
-    panelP1.setBackground(bgPanel);
-    panelP1.add(new JLabel("Player 1", SwingConstants.CENTER) {{
-        setForeground(blueAccent);
-        setFont(getFont().deriveFont(Font.BOLD));
-        setHorizontalAlignment(SwingConstants.CENTER);
-    }});
-    panelP1.add(new JLabel()); // Kosong biar rapi
-    panelP1.add(new JLabel("Up:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
-    panelP1.add(p1UpField);
-    panelP1.add(new JLabel("Down:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
-    panelP1.add(p1DownField);
-    panelP1.add(new JLabel("Left:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
-    panelP1.add(p1LeftField);
-    panelP1.add(new JLabel("Right:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
-    panelP1.add(p1RightField);
-    panelP1.add(new JLabel("Skill:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
-    panelP1.add(p1SkillField);
+        // Panel Player 1
+        JPanel panelP1 = new JPanel(new GridLayout(6, 2, 6, 4));
+        panelP1.setBackground(bgPanel);
+        panelP1.add(new JLabel("Player 1", SwingConstants.CENTER) {{
+            setForeground(blueAccent);
+            setFont(getFont().deriveFont(Font.BOLD));
+            setHorizontalAlignment(SwingConstants.CENTER);
+        }});
+        panelP1.add(new JLabel()); // Kosong biar rapi
+        panelP1.add(new JLabel("Up:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+        panelP1.add(p1UpField);
+        panelP1.add(new JLabel("Down:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+        panelP1.add(p1DownField);
+        panelP1.add(new JLabel("Left:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+        panelP1.add(p1LeftField);
+        panelP1.add(new JLabel("Right:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+        panelP1.add(p1RightField);
+        panelP1.add(new JLabel("Skill:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+        panelP1.add(p1SkillField);
 
-    // Panel Player 2
-    JPanel panelP2 = new JPanel(new GridLayout(6, 2, 6, 4));
-    panelP2.setBackground(bgPanel);
-    panelP2.add(new JLabel("Player 2", SwingConstants.CENTER) {{
-        setForeground(blueAccent);
-        setFont(getFont().deriveFont(Font.BOLD));
-        setHorizontalAlignment(SwingConstants.CENTER);
-    }});
-    panelP2.add(new JLabel());
-    panelP2.add(new JLabel("Up:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
-    panelP2.add(p2UpField);
-    panelP2.add(new JLabel("Down:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
-    panelP2.add(p2DownField);
-    panelP2.add(new JLabel("Left:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
-    panelP2.add(p2LeftField);
-    panelP2.add(new JLabel("Right:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
-    panelP2.add(p2RightField);
-    panelP2.add(new JLabel("Skill:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
-    panelP2.add(p2SkillField);
+        // Panel Player 2
+        JPanel panelP2 = new JPanel(new GridLayout(6, 2, 6, 4));
+        panelP2.setBackground(bgPanel);
+        panelP2.add(new JLabel("Player 2", SwingConstants.CENTER) {{
+            setForeground(blueAccent);
+            setFont(getFont().deriveFont(Font.BOLD));
+            setHorizontalAlignment(SwingConstants.CENTER);
+        }});
+        panelP2.add(new JLabel());
+        panelP2.add(new JLabel("Up:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+        panelP2.add(p2UpField);
+        panelP2.add(new JLabel("Down:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+        panelP2.add(p2DownField);
+        panelP2.add(new JLabel("Left:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+        panelP2.add(p2LeftField);
+        panelP2.add(new JLabel("Right:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+        panelP2.add(p2RightField);
+        panelP2.add(new JLabel("Skill:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
+        panelP2.add(p2SkillField);
 
-    // Panel utama 2 kolom
-    JPanel panelUtama = new JPanel(new GridLayout(1, 2, 20, 0));
-    panelUtama.setBackground(bgPanel);
-    panelUtama.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-    panelUtama.add(panelP1);
-    panelUtama.add(panelP2);
+        // Panel utama 2 kolom
+        JPanel panelUtama = new JPanel(new GridLayout(1, 2, 20, 0));
+        panelUtama.setBackground(bgPanel);
+        panelUtama.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panelUtama.add(panelP1);
+        panelUtama.add(panelP2);
 
-    UIManager.put("OptionPane.background", bgPanel);
-    UIManager.put("Panel.background", bgPanel);
-    UIManager.put("OptionPane.messageForeground", textColor);
+        UIManager.put("OptionPane.background", bgPanel);
+        UIManager.put("Panel.background", bgPanel);
+        UIManager.put("OptionPane.messageForeground", textColor);
 
-    int result = JOptionPane.showConfirmDialog(this, panelUtama, "Setting Kontrol", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-    if (result == JOptionPane.OK_OPTION) {
-        props.setProperty("p1.up", p1UpField.getText().trim().toUpperCase());
-        props.setProperty("p1.down", p1DownField.getText().trim().toUpperCase());
-        props.setProperty("p1.left", p1LeftField.getText().trim().toUpperCase());
-        props.setProperty("p1.right", p1RightField.getText().trim().toUpperCase());
-        props.setProperty("p1.skill", p1SkillField.getText().trim().toUpperCase());
+        int result = JOptionPane.showConfirmDialog(this, panelUtama, "Setting Kontrol", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result == JOptionPane.OK_OPTION) {
+            props.setProperty("p1.up", p1UpField.getText().trim().toUpperCase());
+            props.setProperty("p1.down", p1DownField.getText().trim().toUpperCase());
+            props.setProperty("p1.left", p1LeftField.getText().trim().toUpperCase());
+            props.setProperty("p1.right", p1RightField.getText().trim().toUpperCase());
+            props.setProperty("p1.skill", p1SkillField.getText().trim().toUpperCase());
 
-        props.setProperty("p2.up", p2UpField.getText().trim().toUpperCase());
-        props.setProperty("p2.down", p2DownField.getText().trim().toUpperCase());
-        props.setProperty("p2.left", p2LeftField.getText().trim().toUpperCase());
-        props.setProperty("p2.right", p2RightField.getText().trim().toUpperCase());
-        props.setProperty("p2.skill", p2SkillField.getText().trim().toUpperCase());
+            props.setProperty("p2.up", p2UpField.getText().trim().toUpperCase());
+            props.setProperty("p2.down", p2DownField.getText().trim().toUpperCase());
+            props.setProperty("p2.left", p2LeftField.getText().trim().toUpperCase());
+            props.setProperty("p2.right", p2RightField.getText().trim().toUpperCase());
+            props.setProperty("p2.skill", p2SkillField.getText().trim().toUpperCase());
 
-        try (FileOutputStream out = new FileOutputStream("controls.properties")) {
-            props.store(out, "Player Controls");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Gagal menyimpan setting kontrol!");
+            try (FileOutputStream out = new FileOutputStream("controls.properties")) {
+                props.store(out, "Player Controls");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Gagal menyimpan setting kontrol!");
+            }
         }
     }
-}
-
-
 
     private void showRegisterDialog() {
         JTextField usernameField = new JTextField();
@@ -537,11 +572,13 @@ private void showControlSettingDialog() {
         private final List<Player> playerList = new ArrayList<>();
         private final List<String> skillNames = new ArrayList<>();
         private final List<Boolean> selected = new ArrayList<>();
+        private final List<Integer> checkedOrder = new ArrayList<>(); // urutan ceklis
 
         public void loadPlayers() {
             playerList.clear();
             skillNames.clear();
             selected.clear();
+            checkedOrder.clear();
 
             List<Player> fetched = db.getAllPlayers();
             List<Skill> skills = db.getAllSkills();
@@ -556,14 +593,8 @@ private void showControlSettingDialog() {
             fireTableDataChanged();
         }
 
-        public int getRowCount() {
-            return playerList.size();
-        }
-
-        public int getColumnCount() {
-            return columns.length;
-        }
-
+        public int getRowCount() { return playerList.size(); }
+        public int getColumnCount() { return columns.length; }
         public Object getValueAt(int row, int col) {
             switch (col) {
                 case 0: return row + 1;
@@ -573,53 +604,24 @@ private void showControlSettingDialog() {
             }
             return null;
         }
-
-        public String getColumnName(int col) {
-            return columns[col];
-        }
-
-        public boolean isSelected(int row) {
-            return selected.get(row);
-        }
-
+        public String getColumnName(int col) { return columns[col]; }
+        public boolean isSelected(int row) { return selected.get(row); }
         public void setSelected(int row, boolean value) {
-            int count = getSelectedCount();
-            if (value && count >= 2) return;
+            if (value && getSelectedCount() >= 2) return;
             selected.set(row, value);
+            if (value) {
+                if (!checkedOrder.contains(row)) checkedOrder.add(row);
+            } else {
+                checkedOrder.remove((Integer) row);
+            }
             fireTableCellUpdated(row, 3);
         }
-
-        public int getSelectedCount() {
-            return (int) selected.stream().filter(Boolean::booleanValue).count();
-        }
-
-        public int getFirstSelectedIndex() {
-            for (int i = 0; i < selected.size(); i++) {
-                if (selected.get(i)) return i;
-            }
-            return -1;
-        }
-
-        public List<Integer> getSelectedIndexes() {
-            List<Integer> idxs = new ArrayList<>();
-            for (int i = 0; i < selected.size(); i++) {
-                if (selected.get(i)) idxs.add(i);
-            }
-            return idxs;
-        }
-
-        public int getPlayerId(int row) {
-            return playerList.get(row).id;
-        }
-
-        public String getPlayerName(int row) {
-            return playerList.get(row).username;
-        }
-
-        public int getPlayerSkillId(int row) {
-            return playerList.get(row).skillId;
-        }
-
+        public int getSelectedCount() { return (int) selected.stream().filter(Boolean::booleanValue).count(); }
+        public int getFirstSelectedIndex() { return checkedOrder.isEmpty() ? -1 : checkedOrder.get(0); }
+        public List<Integer> getSelectedIndexes() { return new ArrayList<>(checkedOrder); }
+        public int getPlayerId(int row) { return playerList.get(row).id; }
+        public String getPlayerName(int row) { return playerList.get(row).username; }
+        public int getPlayerSkillId(int row) { return playerList.get(row).skillId; }
         public Class<?> getColumnClass(int col) {
             return switch (col) {
                 case 0 -> Integer.class;
