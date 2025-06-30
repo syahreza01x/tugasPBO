@@ -196,6 +196,7 @@ public class GameModel {
 
     private void checkPlayerCollision(GamePlayer p, int playerId) {
         if (!p.dead && arena[p.x][p.y] == '*' && !p.shield) {
+            audio.playSound("sounds/damage.wav");
             p.lives--;
             if (p.lives <= 0) {
                 p.dead = true;
