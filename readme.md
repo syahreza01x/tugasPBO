@@ -49,20 +49,8 @@
 
 ---
 
-## Mekanisme Cooldown Skill
-
-- **Cooldown skill lawan akan terhenti (pause) selama efek Time Stop, Time Reverse, atau Gold Experience aktif.**
-- **Cooldown pengguna skill tetap berjalan normal.**
-- Tampilan sisa cooldown di layar juga sudah sesuai dengan mekanisme ini.
-
----
-
 ## Setup Database
 
-1. **Buat database baru** di MySQL, misal:  
-   ```sql
-   CREATE DATABASE game_db;
-   ```
-2. **Import File Database**  
-3. **Setelah Semua Selesai, Klik File run.bat**  
-4. **Selesai!
+1. Pastikan local server (MySQL) sudah dinyalakan
+2. Gunakan port 3306 (default MySQL port)
+3. Jalankan Game
