@@ -1,4 +1,4 @@
-# ReZy Retro Game MVC
+# ReZy
 
 ## Kontrol Pemain
 
@@ -24,12 +24,16 @@
 
 ## Daftar Skill
 
-| Nama Skill    | Efek                                                                                   |
-|---------------|----------------------------------------------------------------------------------------|
-| The World     | Menghentikan pergerakan peluru untuk sementara waktu. <br>Cooldown lawan akan terhenti (pause) selama efek aktif, sedangkan cooldown pengguna tetap berjalan normal. |
-| Star Platinum    | Menghapus peluru di sekitar karakter.                                                  |
-| Made in Heaven  | Membalikkan skor lawan secara perlahan. <br>Cooldown lawan akan terhenti (pause) selama efek aktif, sedangkan cooldown pengguna tetap berjalan normal. |
-| Crazy Diamond  | Menambah nyawa.                                                                        |
+| Nama Skill         | Efek                                                                                                                                                                                                 |
+|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| The World          | Menghentikan pergerakan peluru untuk sementara waktu.<br>Cooldown lawan akan terhenti (pause) selama efek aktif, sedangkan cooldown pengguna tetap berjalan normal.                                 |
+| Star Platinum      | Menghapus peluru di sekitar karakter.                                                                                                                        |
+| Made in Heaven     | Membalikkan skor lawan secara perlahan.<br>Cooldown lawan akan terhenti (pause) selama efek aktif, sedangkan cooldown pengguna tetap berjalan normal.                                              |
+| Crazy Diamond      | Menambah nyawa.                                                                                                                                              |
+| The Hand           | Menembakkan laser ke atas, menghapus peluru di jalur laser. Cooldown 30 detik.                                                                              |
+| King Crimson       | Meningkatkan kecepatan gerak secara drastis selama 10 detik. Cooldown 25 detik.                                                                             |
+| Silver Chariot     | Memanggil summon (Spade Silver) yang mengejar lawan dan bisa mengurangi nyawa lawan. Cooldown sesuai database.                                              |
+| Gold Experience    | Mengaktifkan efek visual nyawa lawan naik-turun (bertambah-kurang) selama 10 detik, lalu mengurangi nyawa lawan menjadi 1.<br>Cooldown lawan terhenti (pause) selama efek aktif.                   |
 
 ---
 
@@ -47,7 +51,7 @@
 
 ## Mekanisme Cooldown Skill
 
-- **Cooldown skill lawan akan terhenti (pause) selama efek Time Stop atau Time Reverse aktif.**
+- **Cooldown skill lawan akan terhenti (pause) selama efek Time Stop, Time Reverse, atau Gold Experience aktif.**
 - **Cooldown pengguna skill tetap berjalan normal.**
 - Tampilan sisa cooldown di layar juga sudah sesuai dengan mekanisme ini.
 
