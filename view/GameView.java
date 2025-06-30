@@ -61,6 +61,64 @@ public class GameView extends JPanel {
             g.fillOval(px - 30, py - 30, 60, 60);
         }
 
+        // --- Efek Skill 5-8 ---
+        // Efek The Hand (Laser) KE ATAS
+        if (model.showLaser1) {
+            g.setColor(new Color(0, 128, 255, 180));
+            int px = (model.player1.y - 1) * cw;
+            int py = 0;
+            g.fillRect(px, py, 3 * cw, model.player1.x * ch);
+        }
+        if (model.showLaser2) {
+            g.setColor(new Color(0, 128, 255, 180));
+            int px = (model.player2.y - 1) * cw;
+            int py = 0;
+            g.fillRect(px, py, 3 * cw, model.player2.x * ch);
+        }
+        // Efek King Crimson
+        if (model.showCrimsonEffect1 || model.showCrimsonEffect2) {
+            g.setColor(new Color(220, 20, 60, 80));
+            g.fillRect(0, 0, getWidth(), getHeight());
+        }
+        // Efek Gold Experience
+        if (model.showGoldEffect1 || model.showGoldEffect2) {
+            g.setColor(new Color(255, 215, 0, 80));
+            g.fillRect(0, 0, getWidth(), getHeight());
+        }
+        // Efek Silver Chariot Summon (Spade Silver)
+        if (model.summon1.active) {
+            g.setColor(new Color(192, 192, 192)); // Silver
+            int x = model.summon1.y * cw;
+            int y = model.summon1.x * ch;
+            int w = cw;
+            int h = ch;
+            // Draw Spade shape
+            int[] xPoints = {x + w / 2, x, x + w};
+            int[] yPoints = {y, y + h / 2, y + h / 2};
+            g.fillPolygon(xPoints, yPoints, 3);
+            g.fillOval(x, y + h / 4, w, h / 2);
+            g.fillRect(x + w / 2 - w / 10, y + h / 2, w / 5, h / 2);
+            g.setColor(Color.BLACK);
+            g.setFont(new Font("Monospaced", Font.BOLD, fontSize));
+            g.drawString("♠", x + cw / 4, y + (3 * ch / 4));
+        }
+        if (model.summon2.active && !model.isSinglePlayer) {
+            g.setColor(new Color(192, 192, 192)); // Silver
+            int x = model.summon2.y * cw;
+            int y = model.summon2.x * ch;
+            int w = cw;
+            int h = ch;
+            int[] xPoints = {x + w / 2, x, x + w};
+            int[] yPoints = {y, y + h / 2, y + h / 2};
+            g.fillPolygon(xPoints, yPoints, 3);
+            g.fillOval(x, y + h / 4, w, h / 2);
+            g.fillRect(x + w / 2 - w / 10, y + h / 2, w / 5, h / 2);
+            g.setColor(Color.BLACK);
+            g.setFont(new Font("Monospaced", Font.BOLD, fontSize));
+            g.drawString("♠", x + cw / 4, y + (3 * ch / 4));
+        }
+        // --- END Efek Skill 5-8 ---
+
         // Skor, highscore, skill status, dan health
         g.setColor(Color.GREEN);
         g.setFont(new Font("Arial", Font.BOLD, 18));
@@ -82,15 +140,49 @@ public class GameView extends JPanel {
         } else if (model.getSkill1Id() == 3) { // Time Reverse
             long sisa = cd1 - (now - model.player1.timeReverseCooldownStart - pause1);
             skillStatus1 = model.isTimeReverseReady1() ? "Ready" : "Cooldown: " + Math.max(0, sisa / 1000) + "s";
-        } else { // Extra Health
+        } else if (model.getSkill1Id() == 4) { // Extra Health
             long sisa = cd1 - (now - model.player1.areaClearCooldownStart - pause1);
             skillStatus1 = (model.player1.lives < 5) ? (sisa <= 0 ? "Ready" : "Cooldown: " + Math.max(0, sisa / 1000) + "s") : "Max Health";
+        } else if (model.getSkill1Id() == 5) { // The Hand
+            long sisa = 30000 - (now - model.laserCooldownStart1);
+            skillStatus1 = model.isTheHandReady1() ? "Ready" : "Cooldown: " + Math.max(0, sisa / 1000) + "s";
+        } else if (model.getSkill1Id() == 6) { // King Crimson
+            long sisa = 25000 - (now - model.kingCrimsonCooldownStart1);
+            skillStatus1 = model.isKingCrimsonReady1() ? "Ready" : "Cooldown: " + Math.max(0, sisa / 1000) + "s";
+        } else if (model.getSkill1Id() == 7) { // Silver Chariot
+            if (model.player1.score < 200) skillStatus1 = "Locked";
+            else if (model.summon1.active || model.summonLocked1 || !model.isSilverChariotReady1()) {
+                long sisa = model.getSkill1Cooldown() - (now - model.summonCooldownStart1);
+                skillStatus1 = "Cooldown: " + Math.max(0, sisa / 1000) + "s";
+            } else skillStatus1 = "Ready";
+        } else if (model.getSkill1Id() == 8) { // Gold Experience
+            if (model.player1.score < 100) skillStatus1 = "Locked";
+            else if (model.goldExpActive1 || model.goldExpLocked1 || !model.isGoldExpReady1()) {
+                long sisa = model.getSkill1Cooldown() - (now - model.goldExpCooldownStart1);
+                skillStatus1 = "Cooldown: " + Math.max(0, sisa / 1000) + "s";
+            } else skillStatus1 = "Ready";
+        } else {
+            skillStatus1 = "Unknown";
         }
         g.drawString("Skill: " + skillStatus1, 20, 90);
 
+        // Efek health naik-turun Gold Experience
+        boolean ge1 = model.goldExpActive1 && !model.player2.dead && !model.isSinglePlayer;
+        boolean ge2 = model.goldExpActive2 && !model.player1.dead;
+        int fakeLivesP2 = model.player2.lives;
+        int fakeLivesP1 = model.player1.lives;
+        if (ge1) {
+            if (((now - model.goldExpStart1) / 200) % 2 == 0) fakeLivesP2 = Math.min(5, model.player2.lives + 1);
+            else fakeLivesP2 = Math.max(1, model.player2.lives - 1);
+        }
+        if (ge2) {
+            if (((now - model.goldExpStart2) / 200) % 2 == 0) fakeLivesP1 = Math.min(5, model.player1.lives + 1);
+            else fakeLivesP1 = Math.max(1, model.player1.lives - 1);
+        }
+
         g.setColor(Color.WHITE);
         g.drawString("Lives P1 : ", 250, 30);
-        for (int i = 0; i < model.player1.lives; i++) {
+        for (int i = 0; i < fakeLivesP1; i++) {
             g.setColor(Color.PINK);
             g.drawString("♥", 350 + (i * 20), 30);
         }
@@ -114,15 +206,35 @@ public class GameView extends JPanel {
             } else if (model.getSkill2Id() == 3) {
                 long sisa = cd2 - (now - model.player2.timeReverseCooldownStart - pause2);
                 skillStatus2 = model.isTimeReverseReady2() ? "Ready" : "Cooldown: " + Math.max(0, sisa / 1000) + "s";
-            } else {
+            } else if (model.getSkill2Id() == 4) {
                 long sisa = cd2 - (now - model.player2.areaClearCooldownStart - pause2);
                 skillStatus2 = (model.player2.lives < 5) ? (sisa <= 0 ? "Ready" : "Cooldown: " + Math.max(0, sisa / 1000) + "s") : "Max Health";
+            } else if (model.getSkill2Id() == 5) {
+                long sisa = 30000 - (now - model.laserCooldownStart2);
+                skillStatus2 = model.isTheHandReady2() ? "Ready" : "Cooldown: " + Math.max(0, sisa / 1000) + "s";
+            } else if (model.getSkill2Id() == 6) {
+                long sisa = 25000 - (now - model.kingCrimsonCooldownStart2);
+                skillStatus2 = model.isKingCrimsonReady2() ? "Ready" : "Cooldown: " + Math.max(0, sisa / 1000) + "s";
+            } else if (model.getSkill2Id() == 7) {
+                if (model.player2.score < 200) skillStatus2 = "Locked";
+                else if (model.summon2.active || model.summonLocked2 || !model.isSilverChariotReady2()) {
+                    long sisa = model.getSkill2Cooldown() - (now - model.summonCooldownStart2);
+                    skillStatus2 = "Cooldown: " + Math.max(0, sisa / 1000) + "s";
+                } else skillStatus2 = "Ready";
+            } else if (model.getSkill2Id() == 8) {
+                if (model.player2.score < 100) skillStatus2 = "Locked";
+                else if (model.goldExpActive2 || model.goldExpLocked2 || !model.isGoldExpReady2()) {
+                    long sisa = model.getSkill2Cooldown() - (now - model.goldExpCooldownStart2);
+                    skillStatus2 = "Cooldown: " + Math.max(0, sisa / 1000) + "s";
+                } else skillStatus2 = "Ready";
+            } else {
+                skillStatus2 = "Unknown";
             }
             g.drawString("Skill: " + skillStatus2, 20, 180);
 
             g.setColor(Color.WHITE);
             g.drawString("Lives P2 : ", 250, 60);
-            for (int i = 0; i < model.player2.lives; i++) {
+            for (int i = 0; i < fakeLivesP2; i++) {
                 g.setColor(Color.CYAN);
                 g.drawString("♦", 350 + (i * 20), 60);
             }

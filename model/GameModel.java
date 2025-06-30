@@ -28,6 +28,33 @@ public class GameModel {
 
     private int reverseTickCounter1 = 0, reverseTickCounter2 = 0;
 
+    // --- Tambahan untuk skill 5-8 ---
+    // The Hand (Laser)
+    public boolean showLaser1 = false, showLaser2 = false;
+    public long laserStart1 = 0, laserStart2 = 0;
+    public long laserCooldownStart1 = -30000, laserCooldownStart2 = -30000;
+
+    // King Crimson
+    public boolean kingCrimsonActive1 = false, kingCrimsonActive2 = false;
+    public long kingCrimsonStart1 = 0, kingCrimsonStart2 = 0;
+    public long kingCrimsonCooldownStart1 = -25000, kingCrimsonCooldownStart2 = -25000;
+    public boolean showCrimsonEffect1 = false, showCrimsonEffect2 = false;
+
+    // Silver Chariot (Summon)
+    public GameSummon summon1 = new GameSummon();
+    public GameSummon summon2 = new GameSummon();
+    public boolean summonLocked1 = false, summonLocked2 = false;
+    public long summonCooldownStart1 = -120000, summonCooldownStart2 = -120000;
+    public long summonLastMove1 = 0, summonLastMove2 = 0;
+    public long summonHitPause1 = 0, summonHitPause2 = 0;
+
+    // Gold Experience
+    public boolean goldExpActive1 = false, goldExpActive2 = false;
+    public long goldExpStart1 = 0, goldExpStart2 = 0;
+    public long goldExpCooldownStart1 = -120000, goldExpCooldownStart2 = -120000;
+    public boolean showGoldEffect1 = false, showGoldEffect2 = false;
+    public boolean goldExpLocked1 = false, goldExpLocked2 = false;
+
     public GameModel(
         boolean isSinglePlayer,
         int p1UpKey, int p1DownKey, int p1LeftKey, int p1RightKey, int p1SkillKey,
@@ -100,6 +127,25 @@ public class GameModel {
         player2.timeStopCooldownStart = -skill2Cooldown;
         player2.areaClearCooldownStart = -skill2Cooldown;
         player2.timeReverseCooldownStart = -skill2Cooldown;
+
+        // Reset skill 5-8
+        showLaser1 = showLaser2 = false;
+        laserStart1 = laserStart2 = 0;
+        laserCooldownStart1 = laserCooldownStart2 = -30000;
+        kingCrimsonActive1 = kingCrimsonActive2 = false;
+        kingCrimsonStart1 = kingCrimsonStart2 = 0;
+        kingCrimsonCooldownStart1 = kingCrimsonCooldownStart2 = -25000;
+        showCrimsonEffect1 = showCrimsonEffect2 = false;
+        summon1.active = summon2.active = false;
+        summonLocked1 = summonLocked2 = false;
+        summonCooldownStart1 = summonCooldownStart2 = -120000;
+        summonLastMove1 = summonLastMove2 = 0;
+        summonHitPause1 = summonHitPause2 = 0;
+        goldExpActive1 = goldExpActive2 = false;
+        goldExpStart1 = goldExpStart2 = 0;
+        goldExpCooldownStart1 = goldExpCooldownStart2 = -120000;
+        showGoldEffect1 = showGoldEffect2 = false;
+        goldExpLocked1 = goldExpLocked2 = false;
     }
 
     public void updateGame() {
@@ -117,7 +163,175 @@ public class GameModel {
         updatePlayerScore(player1, player2, true);
         if (!isSinglePlayer) updatePlayerScore(player2, player1, false);
 
-        if (!(player1.timeStopActive || player2.timeStopActive || player1.timeReverseActive || player2.timeReverseActive)) {
+        // --- The Hand (Laser) ---
+        if (showLaser1) {
+            for (int j = player1.y - 1; j <= player1.y + 1; j++) {
+                if (j < 0 || j >= COLS) continue;
+                for (int i = 0; i < ROWS; i++) {
+                    if (arena[i][j] == '*') arena[i][j] = ' ';
+                }
+            }
+            if (now - laserStart1 >= 2000) {
+                showLaser1 = false;
+                laserCooldownStart1 = now;
+                audio.resumeBGM();
+            }
+        }
+        if (showLaser2) {
+            for (int j = player2.y - 1; j <= player2.y + 1; j++) {
+                if (j < 0 || j >= COLS) continue;
+                for (int i = 0; i < ROWS; i++) {
+                    if (arena[i][j] == '*') arena[i][j] = ' ';
+                }
+            }
+            if (now - laserStart2 >= 2000) {
+                showLaser2 = false;
+                laserCooldownStart2 = now;
+                audio.resumeBGM();
+            }
+        }
+
+        // --- King Crimson ---
+        if (kingCrimsonActive1 && now - kingCrimsonStart1 >= 10000) {
+            kingCrimsonActive1 = false;
+            showCrimsonEffect1 = false;
+            kingCrimsonCooldownStart1 = now;
+            audio.resumeBGM();
+        }
+        if (kingCrimsonActive2 && now - kingCrimsonStart2 >= 10000) {
+            kingCrimsonActive2 = false;
+            showCrimsonEffect2 = false;
+            kingCrimsonCooldownStart2 = now;
+            audio.resumeBGM();
+        }
+
+        // --- Silver Chariot (Summon) ---
+        if (summon1.active) {
+            if (now - summon1.startTime < 10000) {
+                if (now - summonHitPause1 >= 2000) {
+                    if (now - summonLastMove1 >= 500) {
+                        summon1.update(player2, ROWS, COLS);
+                        summonLastMove1 = now;
+                        if (summon1.x == player2.x && summon1.y == player2.y && !player2.dead && !player2.shield) {
+                            player2.lives--;
+                            summonHitPause1 = now;
+                            if (player2.lives <= 0) {
+                                player2.dead = true;
+                                db.saveHighScore(player2Id, player2.score);
+                                player2.highScore = db.getHighScore(player2Id);
+                                JOptionPane.showMessageDialog(null, "\uD83D\uDC80 " + player2.username + " Kehabisan nyawa! Game Over.\nScore: " + player2.score + "\nHigh Score: " + player2.highScore);
+                            }
+                        }
+                    }
+                }
+            }
+            if (now - summon1.startTime >= 10000) {
+                summon1.active = false;
+                summonLocked1 = true;
+                summonCooldownStart1 = now;
+                audio.resumeBGM();
+            }
+        }
+        if (summon2.active) {
+            if (now - summon2.startTime < 10000) {
+                if (now - summonHitPause2 >= 2000) {
+                    if (now - summonLastMove2 >= 500) {
+                        summon2.update(player1, ROWS, COLS);
+                        summonLastMove2 = now;
+                        if (summon2.x == player1.x && summon2.y == player1.y && !player1.dead && !player1.shield) {
+                            player1.lives--;
+                            summonHitPause2 = now;
+                            if (player1.lives <= 0) {
+                                player1.dead = true;
+                                db.saveHighScore(player1Id, player1.score);
+                                player1.highScore = db.getHighScore(player1Id);
+                                JOptionPane.showMessageDialog(null, "\uD83D\uDC80 " + player1.username + " Kehabisan nyawa! Game Over.\nScore: " + player1.score + "\nHigh Score: " + player1.highScore);
+                            }
+                        }
+                    }
+                }
+            }
+            if (now - summon2.startTime >= 10000) {
+                summon2.active = false;
+                summonLocked2 = true;
+                summonCooldownStart2 = now;
+                audio.resumeBGM();
+            }
+        }
+
+        // --- Gold Experience ---
+        boolean goldExpFreeze1 = goldExpActive1;
+        boolean goldExpFreeze2 = goldExpActive2;
+
+        // Pause cooldown lawan saat Gold Experience aktif
+        if (goldExpActive1 && !player2.dead && !isSinglePlayer) {
+            if (player2.pauseStart == 0) player2.pauseStart = now;
+        } else if (!goldExpActive1 && player2.pauseStart != 0) {
+            player2.pauseAccum += now - player2.pauseStart;
+            player2.pauseStart = 0;
+        }
+        if (goldExpActive2 && !player1.dead) {
+            if (player1.pauseStart == 0) player1.pauseStart = now;
+        } else if (!goldExpActive2 && player1.pauseStart != 0) {
+            player1.pauseAccum += now - player1.pauseStart;
+            player1.pauseStart = 0;
+        }
+
+        if (goldExpActive1 && now - goldExpStart1 >= 10000) {
+            goldExpActive1 = false;
+            showGoldEffect1 = false;
+            goldExpCooldownStart1 = now;
+            if (!player2.dead && !isSinglePlayer) {
+                if (player2.lives > 1) player2.lives = 1;
+                else player2.lives = 0;
+                if (player2.lives == 0) {
+                    player2.dead = true;
+                    db.saveHighScore(player2Id, player2.score);
+                    player2.highScore = db.getHighScore(player2Id);
+                    JOptionPane.showMessageDialog(null, "\uD83D\uDC80 " + player2.username + " Kehabisan nyawa! Game Over.\nScore: " + player2.score + "\nHigh Score: " + player2.highScore);
+                }
+            }
+            goldExpLocked1 = true;
+            audio.resumeBGM();
+        }
+        if (goldExpActive2 && now - goldExpStart2 >= 10000) {
+            goldExpActive2 = false;
+            showGoldEffect2 = false;
+            goldExpCooldownStart2 = now;
+            if (!player1.dead) {
+                if (player1.lives > 1) player1.lives = 1;
+                else player1.lives = 0;
+                if (player1.lives == 0) {
+                    player1.dead = true;
+                    db.saveHighScore(player1Id, player1.score);
+                    player1.highScore = db.getHighScore(player1Id);
+                    JOptionPane.showMessageDialog(null, "\uD83D\uDC80 " + player1.username + " Kehabisan nyawa! Game Over.\nScore: " + player1.score + "\nHigh Score: " + player1.highScore);
+                }
+            }
+            goldExpLocked2 = true;
+            audio.resumeBGM();
+        }
+
+        // Damage loop Gold Experience + freeze peluru
+        if (goldExpActive1 && !player2.dead && !isSinglePlayer) {
+            audio.playSound("sounds/damage.wav");
+            player2.skillLock = true;
+        } else if (!goldExpActive1) {
+            player2.skillLock = false;
+        }
+        if (goldExpActive2 && !player1.dead) {
+            audio.playSound("sounds/damage.wav");
+            player1.skillLock = true;
+        } else if (!goldExpActive2) {
+            player1.skillLock = false;
+        }
+
+        // --- END skill 5-8 ---
+
+        // Freeze peluru jika Gold Experience aktif
+        boolean freezeBullets = (goldExpFreeze1 || goldExpFreeze2);
+
+        if (!(player1.timeStopActive || player2.timeStopActive || player1.timeReverseActive || player2.timeReverseActive || freezeBullets)) {
             arenaHelper.updateBullets(player1, player2);
             arenaHelper.spawnBullets();
             drop.spawnDrops(ROWS, COLS);
@@ -208,23 +422,26 @@ public class GameModel {
     }
 
     public void movePlayer1(int dx, int dy) {
-        // Hanya batasi jika lawan sedang time stop/reverse
-        if (!isSinglePlayer && (player2.timeStopActive || player2.timeReverseActive)) return;
+        if (!isSinglePlayer && (player2.timeStopActive || player2.timeReverseActive || goldExpActive2)) return;
         int moveStep = player1.speed ? 2 : 1;
+        if (kingCrimsonActive1) moveStep = 3;
+        if (kingCrimsonActive2) moveStep = 1;
         int nx = player1.x + dx * moveStep, ny = player1.y + dy * moveStep;
         if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLS) {
             player1.x = nx; player1.y = ny;
         }
     }
     public void movePlayer2(int dx, int dy) {
-        // Hanya batasi jika lawan sedang time stop/reverse
-        if (player1.timeStopActive || player1.timeReverseActive) return;
+        if (player1.timeStopActive || player1.timeReverseActive || goldExpActive1) return;
         int moveStep = player2.speed ? 2 : 1;
+        if (kingCrimsonActive2) moveStep = 3;
+        if (kingCrimsonActive1) moveStep = 1;
         int nx = player2.x + dx * moveStep, ny = player2.y + dy * moveStep;
         if (nx >= 0 && nx < ROWS && ny >= 0 && ny < COLS) {
             player2.x = nx; player2.y = ny;
         }
     }
+
     // Skill getter/setter
     public int getSkill1Id() { return skill1Id; }
     public int getSkill2Id() { return skill2Id; }
@@ -271,9 +488,116 @@ public class GameModel {
         return !player2.timeReverseActive && (now - player2.timeReverseCooldownStart - pause >= skill2Cooldown) && !player2.skillLock;
     }
 
-    // Skill activation
+    // --- Skill 5-8 ---
+    public boolean isTheHandReady1() {
+        long now = System.currentTimeMillis();
+        return skill1Id == 5 && !showLaser1 && (now - laserCooldownStart1 >= 30000) && !player1.skillLock;
+    }
+    public boolean isTheHandReady2() {
+        long now = System.currentTimeMillis();
+        return skill2Id == 5 && !showLaser2 && (now - laserCooldownStart2 >= 30000) && !player2.skillLock;
+    }
+    public boolean isKingCrimsonReady1() {
+        long now = System.currentTimeMillis();
+        return skill1Id == 6 && !kingCrimsonActive1 && (now - kingCrimsonCooldownStart1 >= 25000) && !player1.skillLock;
+    }
+    public boolean isKingCrimsonReady2() {
+        long now = System.currentTimeMillis();
+        return skill2Id == 6 && !kingCrimsonActive2 && (now - kingCrimsonCooldownStart2 >= 25000) && !player2.skillLock;
+    }
+    public boolean isSilverChariotReady1() {
+        if (skill1Id != 7) return false;
+        if (player1.score < 200) return false;
+        long now = System.currentTimeMillis();
+        return !summon1.active && !summonLocked1 && (now - summonCooldownStart1 >= skill1Cooldown) && !player1.skillLock;
+    }
+    public boolean isSilverChariotReady2() {
+        if (skill2Id != 7) return false;
+        if (player2.score < 200) return false;
+        long now = System.currentTimeMillis();
+        return !summon2.active && !summonLocked2 && (now - summonCooldownStart2 >= skill2Cooldown) && !player2.skillLock;
+    }
+    public boolean isGoldExpReady1() {
+        if (skill1Id != 8) return false;
+        if (player1.score < 100) return false;
+        long now = System.currentTimeMillis();
+        return !goldExpActive1 && !goldExpLocked1 && (now - goldExpCooldownStart1 >= skill1Cooldown) && !player1.skillLock;
+    }
+    public boolean isGoldExpReady2() {
+        if (skill2Id != 8) return false;
+        if (player2.score < 100) return false;
+        long now = System.currentTimeMillis();
+        return !goldExpActive2 && !goldExpLocked2 && (now - goldExpCooldownStart2 >= skill2Cooldown) && !player2.skillLock;
+    }
+
+    // --- Skill 5-8 Activation ---
+    public void activateTheHandForPlayer1() {
+        if (!isTheHandReady1()) return;
+        audio.pauseBGM();
+        showLaser1 = true;
+        laserStart1 = System.currentTimeMillis();
+        audio.playSound("sounds/skill5.wav");
+    }
+    public void activateTheHandForPlayer2() {
+        if (!isTheHandReady2()) return;
+        audio.pauseBGM();
+        showLaser2 = true;
+        laserStart2 = System.currentTimeMillis();
+        audio.playSound("sounds/skill5.wav");
+    }
+    public void activateKingCrimsonForPlayer1() {
+        if (!isKingCrimsonReady1()) return;
+        audio.pauseBGM();
+        kingCrimsonActive1 = true;
+        kingCrimsonStart1 = System.currentTimeMillis();
+        showCrimsonEffect1 = true;
+        audio.playSound("sounds/skill6.wav");
+    }
+    public void activateKingCrimsonForPlayer2() {
+        if (!isKingCrimsonReady2()) return;
+        audio.pauseBGM();
+        kingCrimsonActive2 = true;
+        kingCrimsonStart2 = System.currentTimeMillis();
+        showCrimsonEffect2 = true;
+        audio.playSound("sounds/skill6.wav");
+    }
+    public void activateSilverChariotForPlayer1() {
+        if (!isSilverChariotReady1()) return;
+        audio.pauseBGM();
+        summon1.summon(player1.x, player1.y);
+        summon1.startTime = System.currentTimeMillis();
+        summonLastMove1 = summon1.startTime;
+        summonHitPause1 = summon1.startTime - 2000;
+        audio.playSound("sounds/skill7.wav");
+    }
+    public void activateSilverChariotForPlayer2() {
+        if (!isSilverChariotReady2()) return;
+        audio.pauseBGM();
+        summon2.summon(player2.x, player2.y);
+        summon2.startTime = System.currentTimeMillis();
+        summonLastMove2 = summon2.startTime;
+        summonHitPause2 = summon2.startTime - 2000;
+        audio.playSound("sounds/skill7.wav");
+    }
+    public void activateGoldExpForPlayer1() {
+        if (!isGoldExpReady1()) return;
+        audio.pauseBGM();
+        goldExpActive1 = true;
+        goldExpStart1 = System.currentTimeMillis();
+        showGoldEffect1 = true;
+        audio.playSound("sounds/skill8.wav");
+    }
+    public void activateGoldExpForPlayer2() {
+        if (!isGoldExpReady2()) return;
+        audio.pauseBGM();
+        goldExpActive2 = true;
+        goldExpStart2 = System.currentTimeMillis();
+        showGoldEffect2 = true;
+        audio.playSound("sounds/skill8.wav");
+    }
+
+    // Skill 1-4 Activation (tidak berubah)
     public void activateTimeStopForPlayer1() {
-        // Tidak bisa jika lawan sedang time stop/reverse
         if (player2.timeStopActive || player2.timeReverseActive) return;
         if (isTimeStopReady1()) {
             audio.pauseBGM();

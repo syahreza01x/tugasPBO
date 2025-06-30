@@ -59,6 +59,10 @@ public class GameController implements KeyListener, ActionListener {
                 else if (model.getSkill1Id() == 2) model.activateAreaClearForPlayer1();
                 else if (model.getSkill1Id() == 3) model.activateTimeReverseForPlayer1();
                 else if (model.getSkill1Id() == 4) model.activateExtraHealthForPlayer1();
+                else if (model.getSkill1Id() == 5) model.activateTheHandForPlayer1();
+                else if (model.getSkill1Id() == 6) model.activateKingCrimsonForPlayer1();
+                else if (model.getSkill1Id() == 7) model.activateSilverChariotForPlayer1();
+                else if (model.getSkill1Id() == 8) model.activateGoldExpForPlayer1();
             }
         }
 
@@ -73,6 +77,10 @@ public class GameController implements KeyListener, ActionListener {
                 else if (model.getSkill2Id() == 2) model.activateAreaClearForPlayer2();
                 else if (model.getSkill2Id() == 3) model.activateTimeReverseForPlayer2();
                 else if (model.getSkill2Id() == 4) model.activateExtraHealthForPlayer2();
+                else if (model.getSkill2Id() == 5) model.activateTheHandForPlayer2();
+                else if (model.getSkill2Id() == 6) model.activateKingCrimsonForPlayer2();
+                else if (model.getSkill2Id() == 7) model.activateSilverChariotForPlayer2();
+                else if (model.getSkill2Id() == 8) model.activateGoldExpForPlayer2();
             }
         }
     }
