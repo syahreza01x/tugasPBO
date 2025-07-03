@@ -98,6 +98,9 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
     private boolean bossBranchBlack = false;
     private boolean bossBranchBlackDone = false;
 
+    // Tambahan untuk boss multi-pattern
+    private List<Integer> bossAttackPatterns = new ArrayList<>();
+
     public SpecialModePanel(int playerId, String username, DatabaseManager db, JFrame frame, HomePage homePage) {
         this.playerId = playerId;
         this.username = username;
@@ -156,7 +159,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
         if (blackScreen || bossBranchBlack) {
             g.setColor(Color.BLACK);
             g.fillRect(0, 0, getWidth(), getHeight());
-            // Tambahan: gambar MONSTER di layar hitam jika perlu
             if (showMonsterText) {
                 g.setColor(Color.RED);
                 g.setFont(new Font("Arial", Font.BOLD, 100));
@@ -174,7 +176,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             return;
         }
 
-        // Mirror phase: player, cermin, dialog, END
         if (mirrorPhase) {
             g.setColor(Color.BLACK);
             g.fillRect(0, 0, getWidth(), getHeight());
@@ -201,7 +202,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             return;
         }
 
-        // Boss intro laugh
         if (bossPhase && !bossIntroDone && bossIntro) {
             g.setColor(Color.BLACK);
             g.fillRect(0, 0, getWidth(), getHeight());
@@ -220,7 +220,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             return;
         }
 
-        // Boss after death dialog
         if (bossAfterDialog) {
             g.setColor(Color.BLACK);
             g.fillRect(0, 0, getWidth(), getHeight());
@@ -228,7 +227,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                 g.drawImage(bossScareImg, bossY * cw, bossX * ch, cw * 10, ch * 10, null);
             if (bossAfter1Img != null && bossAfterDialogStep == 0)
                 g.drawImage(bossAfter1Img, getWidth()/2-200, getHeight()-160, 400, 120, null);
-            // Pilihan KILL/SPARE
             if (bossChoice) {
                 g.setFont(new Font("Arial", Font.BOLD, 32));
                 int y = getHeight()-60;
@@ -240,7 +238,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             return;
         }
 
-        // Boss branch dialog (setelah KILL/SPARE)
         if (bossBranchDialog) {
             g.setColor(Color.BLACK);
             g.fillRect(0, 0, getWidth(), getHeight());
@@ -261,7 +258,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             return;
         }
 
-        // Arena dan player
         if (!mirrorPhase) {
             for (int i = 0; i < ROWS; i++) {
                 for (int j = 0; j < COLS; j++) {
@@ -274,7 +270,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             g.drawString("♥", playerY * cw + cw / 4, playerX * ch + (3 * ch / 4));
         }
 
-        // Peluru time rush (kuning)
         if (!bossPhase && !bossDead) {
             for (Bullet b : bullets) {
                 g.setColor(Color.YELLOW);
@@ -282,7 +277,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             }
         }
 
-        // Peluru boss (putih/merah)
         if (bossPhase && !bossDead) {
             for (Bullet b : bossBullets) {
                 g.setColor(b.red ? Color.RED : Color.WHITE);
@@ -290,7 +284,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             }
         }
 
-        // Boss pakai gambar
         if (bossPhase && !bossDead) {
             BufferedImage bossImg = bossImg1;
             if (bossHP <= 10) bossImg = bossImg3;
@@ -317,7 +310,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                 }
             }
 
-            // Efek serangan (GIF) kecil di tengah bos
             if (showAttackEffect && attackEffectImg != null) {
                 int effW = 120, effH = 120;
                 int effX = px + bossW/2 - effW/2;
@@ -338,7 +330,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             g.drawString("BOSS HP: " + bossHP + " / " + bossHPMax, barX + 80, barY + 30);
         }
 
-        // Timer
         if (!bossPhase && !bossDead) {
             int sisa = Math.max(0, (int)((surviveTime - (System.currentTimeMillis() - startTime))/1000));
             g.setColor(Color.WHITE);
@@ -346,7 +337,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             g.drawString("Survive: " + sisa + "s", getWidth()/2-60, 40);
         }
 
-        // Attack bar (player turn)
         if (bossPhase && playerTurn && attackBarActive) {
             int barW = 320, barH = 30;
             int barX = getWidth()/2 - barW/2, barY = getHeight()/2 + 120;
@@ -378,7 +368,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                 g.drawString(attackResult, barX + barW + 20, barY + 24);
             }
         }
-        // (JANGAN gambar MONSTER di sini, sudah digambar di layar hitam di atas)
     }
 
     @Override
@@ -389,7 +378,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             repaint();
             return;
         }
-        // Boss intro laugh
         if (bossPhase && !bossIntroDone) {
             if (!bossIntro) {
                 bossIntro = true;
@@ -450,22 +438,49 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
         } else if (!bossDead) {
             bossMoveTick++;
             if (bossMoveTick % 15 == 0) {
-                int dir = rand.nextInt(4);
-                if (dir == 0 && bossX > 0) bossX--;
-                if (dir == 1 && bossX < ROWS / 2 - 10) bossX++;
-                if (dir == 2 && bossY > 0) bossY--;
-                if (dir == 3 && bossY < COLS - 10) bossY++;
+                int[] dx = {-1, 1, 0, 0};
+                int[] dy = {0, 0, -1, 1};
+                java.util.List<Integer> possible = new ArrayList<>();
+                for (int i = 0; i < 4; i++) {
+                    int nx = bossX + dx[i];
+                    int ny = bossY + dy[i];
+                    if (nx >= 0 && nx <= (ROWS - 10) && ny >= 0 && ny <= (COLS - 10)) {
+                        possible.add(i);
+                    }
+                }
+                if (!possible.isEmpty()) {
+                    int dir = possible.get(rand.nextInt(possible.size()));
+                    bossX += dx[dir];
+                    bossY += dy[dir];
+                }
             }
+            // --- BAGIAN YANG DIUBAH SESUAI PERMINTAAN ---
             if (!playerTurn) {
                 bossAttackTick++;
                 if (bossAttackTick == 1) {
-                    bossAttackPattern = rand.nextInt(5);
                     bossBullets.clear();
                     bossAttackTargetX = playerX;
                     bossAttackTargetY = playerY;
+                    bossAttackPatterns.clear();
+                    if (bossHP <= 10) {
+                        while (bossAttackPatterns.size() < 3) {
+                            int p = rand.nextInt(5);
+                            if (!bossAttackPatterns.contains(p)) bossAttackPatterns.add(p);
+                        }
+                    } else if (bossHP <= 30) {
+                        int p1 = rand.nextInt(5);
+                        int p2;
+                        do { p2 = rand.nextInt(5); } while (p2 == p1);
+                        bossAttackPatterns.add(p1);
+                        bossAttackPatterns.add(p2);
+                    } else {
+                        bossAttackPatterns.add(rand.nextInt(5));
+                    }
                 }
                 if (bossAttackTick % 18 == 0 && bossAttackTick <= 72) {
-                    spawnBossPattern(bossAttackPattern, bossAttackTargetX, bossAttackTargetY);
+                    for (int p : bossAttackPatterns) {
+                        spawnBossPattern(p, bossAttackTargetX, bossAttackTargetY);
+                    }
                 }
                 if (bossAttackTick % 2 == 0) {
                     List<Bullet> toRemove = new ArrayList<>();
@@ -518,6 +533,8 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                                 attackBarDir = 1;
                                 attackResult = "";
                                 bossHP = bossHPMax;
+                                bossX = 2;
+                                bossY = COLS / 2 - 6;
                                 stopBossMusic();
                                 playBossMusic();
                                 timer.start();
@@ -552,15 +569,14 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                     }
                 }
             }
+            // --- END BAGIAN YANG DIUBAH ---
         }
 
-        // Update efek serangan dan efek merah bos
         if (showAttackEffect) {
             attackEffectTick++;
             if (attackEffectTick > attackEffectDuration) {
                 showAttackEffect = false;
                 attackEffectTick = 0;
-                // Setelah animasi serangan selesai, baru trigger efek hit
                 if (pendingHitEffect) {
                     bossRedEffect = true;
                     bossRedEffectTick = 0;
@@ -612,16 +628,15 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
         repaint();
     }
 
-    // Pola serangan boss
     private void spawnBossPattern(int pattern, int targetX, int targetY) {
         switch (pattern) {
-            case 0: // Vertikal lebih banyak
+            case 0:
                 for (int i = 0; i < 12; i++) {
                     int col = rand.nextInt(COLS);
                     bossBullets.add(new Bullet(0, col, 1, 0, false));
                 }
                 break;
-            case 1: // Diagonal kiri bawah ke kanan atas (memantul)
+            case 1:
                 for (int offset = -4; offset <= 4; offset++) {
                     int startX = ROWS - 1;
                     int startY = 0 + offset;
@@ -629,7 +644,7 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                         bossBullets.add(new Bullet(startX, startY, -1, 1, false, true));
                 }
                 break;
-            case 2: // Diagonal kanan atas ke kiri bawah (memantul)
+            case 2:
                 for (int offset = -4; offset <= 4; offset++) {
                     int startX = 0;
                     int startY = COLS - 1 - offset;
@@ -637,14 +652,14 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                         bossBullets.add(new Bullet(startX, startY, 1, -1, false, true));
                 }
                 break;
-            case 3: // Horizontal kiri ke kanan (lebih banyak baris)
+            case 3:
                 for (int bx = Math.max(0, targetX - 2); bx <= Math.min(ROWS - 1, targetX + 2); bx++) {
                     int skipRow = rand.nextInt(5);
                     if (bx - Math.max(0, targetX - 2) == skipRow) continue;
                     bossBullets.add(new Bullet(bx, 0, 0, 1, false));
                 }
                 break;
-            case 4: // Horizontal kanan ke kiri (lebih banyak baris)
+            case 4:
                 for (int bx = Math.max(0, targetX - 2); bx <= Math.min(ROWS - 1, targetX + 2); bx++) {
                     int skipRow = rand.nextInt(5);
                     if (bx - Math.max(0, targetX - 2) == skipRow) continue;
@@ -658,7 +673,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
     public void keyPressed(KeyEvent e) {
         if (endPhase) return;
 
-        // Boss after death dialog
         if (bossAfterDialog) {
             if (bossChoice) {
                 if (e.getKeyCode() == KeyEvent.VK_A || e.getKeyCode() == KeyEvent.VK_LEFT) {
@@ -693,7 +707,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             return;
         }
 
-        // Boss branch dialog (setelah KILL/SPARE)
         if (bossBranchDialog) {
             if (e.getKeyCode() == KeyEvent.VK_E || e.getKeyCode() == KeyEvent.VK_ENTER) {
                 stopDialogMusic();
@@ -716,11 +729,11 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
 
                         new Thread(() -> {
                             try {
-                                Thread.sleep(10000); // 10 detik
+                                Thread.sleep(10000);
                                 showMonsterText = true;
                                 monsterTextStartTime = System.currentTimeMillis();
                                 repaint();
-                                Thread.sleep(2500); // tampil 2.5 detik
+                                Thread.sleep(2500);
                                 showMonsterText = false;
                                 repaint();
                             } catch (Exception ex) {}
@@ -754,7 +767,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             return;
         }
 
-        // Mirror phase movement & dialog
         if (mirrorPhase && mirrorShowPlayer) {
             if (showMirrorDialog) {
                 if (e.getKeyCode() == KeyEvent.VK_E) {
@@ -788,7 +800,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             return;
         }
 
-        // Boss phase: attack bar
         if (bossPhase && playerTurn && attackBarActive && e.getKeyCode() == KeyEvent.VK_E) {
             stopAttackMusic();
             int pos = attackBarPos;
@@ -812,7 +823,6 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
             attackBarPos = 0;
             attackBarDir = 1;
 
-            // Efek serangan dan pending hit
             if (!color.equals("MISS")) {
                 showAttackEffect = true;
                 attackEffectTick = 0;
@@ -820,15 +830,11 @@ public class SpecialModePanel extends JPanel implements ActionListener, KeyListe
                 pendingHitDamage = dmg;
             }
 
-            // Putar attack.wav bersamaan dengan efek
             playAttackMusic();
-
-            // Damage dan hit.wav diberikan setelah animasi selesai (lihat actionPerformed)
             attackResult = "";
             repaint();
             return;
         }
-        // Movement
         if (!bossPhase || (bossPhase && !playerTurn)) {
             if (e.getKeyCode() == KeyEvent.VK_W && playerX > 0) playerX--;
             else if (e.getKeyCode() == KeyEvent.VK_S && playerX < ROWS-1) playerX++;

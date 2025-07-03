@@ -2,6 +2,7 @@ package model;
 
 import java.sql.*;
 import java.util.*;
+import javax.swing.JOptionPane;
 
 public class DatabaseManager {
     private Connection conn;
@@ -14,6 +15,18 @@ public class DatabaseManager {
             // Koneksi ulang ke game_db
             conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/game_db", "root", "");
         } catch (SQLException e) {
+            // Tampilkan pop up jika gagal koneksi
+            JOptionPane.showMessageDialog(
+                null,
+                "Gagal terkoneksi ke database!\n\n" +
+                "Silakan cek beberapa hal berikut:\n" +
+                "1. Pastikan MySQL sudah berjalan.\n" +
+                "2. Pastikan port MySQL adalah 3306.\n" +
+                "3. Pastikan user database adalah 'root' tanpa password.\n\n" +
+                "Detail error: " + e.getMessage(),
+                "Koneksi Database Gagal",
+                JOptionPane.ERROR_MESSAGE
+            );
             e.printStackTrace();
         }
     }

@@ -130,8 +130,10 @@ public class GameView extends JPanel {
         int cd1 = model.getSkill1Cooldown();
         long now = System.currentTimeMillis();
         long pause1 = model.player1.pauseAccum;
-        if (model.player2.timeStopActive || model.player2.timeReverseActive) pause1 += now - model.player1.pauseStart;
-        if (model.getSkill1Id() == 1) { // Time Stop
+        if (model.player2.timeStopActive || model.player2.timeReverseActive || model.goldExpActive2) pause1 += now - model.player1.pauseStart;
+        if (model.player1.dead) {
+            skillStatus1 = "Dead";
+        } else if (model.getSkill1Id() == 1) { // Time Stop
             long sisa = cd1 - (now - model.player1.timeStopCooldownStart - pause1);
             skillStatus1 = model.isTimeStopReady1() ? "Ready" : "Cooldown: " + Math.max(0, sisa / 1000) + "s";
         } else if (model.getSkill1Id() == 2) { // Area Clear
@@ -196,8 +198,10 @@ public class GameView extends JPanel {
             String skillStatus2;
             int cd2 = model.getSkill2Cooldown();
             long pause2 = model.player2.pauseAccum;
-            if (model.player1.timeStopActive || model.player1.timeReverseActive) pause2 += now - model.player2.pauseStart;
-            if (model.getSkill2Id() == 1) {
+            if (model.player1.timeStopActive || model.player1.timeReverseActive || model.goldExpActive1) pause2 += now - model.player2.pauseStart;
+            if (model.player2.dead) {
+                skillStatus2 = "Dead";
+            } else if (model.getSkill2Id() == 1) {
                 long sisa = cd2 - (now - model.player2.timeStopCooldownStart - pause2);
                 skillStatus2 = model.isTimeStopReady2() ? "Ready" : "Cooldown: " + Math.max(0, sisa / 1000) + "s";
             } else if (model.getSkill2Id() == 2) {

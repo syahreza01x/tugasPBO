@@ -263,16 +263,16 @@ public class GameModel {
         boolean goldExpFreeze1 = goldExpActive1;
         boolean goldExpFreeze2 = goldExpActive2;
 
-        // Pause cooldown lawan saat Gold Experience aktif
+        // --- PAUSE COOLDOWN LAWAN SAAT GOLD EXPERIENCE AKTIF ---
         if (goldExpActive1 && !player2.dead && !isSinglePlayer) {
             if (player2.pauseStart == 0) player2.pauseStart = now;
-        } else if (!goldExpActive1 && player2.pauseStart != 0) {
+        } else if (!goldExpActive1 && player2.pauseStart != 0 && !player2.timeStopActive && !player2.timeReverseActive) {
             player2.pauseAccum += now - player2.pauseStart;
             player2.pauseStart = 0;
         }
         if (goldExpActive2 && !player1.dead) {
             if (player1.pauseStart == 0) player1.pauseStart = now;
-        } else if (!goldExpActive2 && player1.pauseStart != 0) {
+        } else if (!goldExpActive2 && player1.pauseStart != 0 && !player1.timeStopActive && !player1.timeReverseActive) {
             player1.pauseAccum += now - player1.pauseStart;
             player1.pauseStart = 0;
         }
@@ -452,36 +452,42 @@ public class GameModel {
 
     // Skill ready
     public boolean isTimeStopReady1() {
+        if (player1.dead) return false;
         long now = System.currentTimeMillis();
         long pause = player1.pauseAccum;
         if (player2.timeStopActive || player2.timeReverseActive) pause += now - player1.pauseStart;
         return !player1.timeStopActive && (now - player1.timeStopCooldownStart - pause >= skill1Cooldown) && !player1.skillLock;
     }
     public boolean isTimeStopReady2() {
+        if (player2.dead) return false;
         long now = System.currentTimeMillis();
         long pause = player2.pauseAccum;
         if (player1.timeStopActive || player1.timeReverseActive) pause += now - player2.pauseStart;
         return !player2.timeStopActive && (now - player2.timeStopCooldownStart - pause >= skill2Cooldown) && !player2.skillLock;
     }
     public boolean isAreaClearReady1() {
+        if (player1.dead) return false;
         long now = System.currentTimeMillis();
         long pause = player1.pauseAccum;
         if (player2.timeStopActive || player2.timeReverseActive) pause += now - player1.pauseStart;
         return !player1.areaClearActive && (now - player1.areaClearCooldownStart - pause >= skill1Cooldown) && !player1.skillLock;
     }
     public boolean isAreaClearReady2() {
+        if (player2.dead) return false;
         long now = System.currentTimeMillis();
         long pause = player2.pauseAccum;
         if (player1.timeStopActive || player1.timeReverseActive) pause += now - player2.pauseStart;
         return !player2.areaClearActive && (now - player2.areaClearCooldownStart - pause >= skill2Cooldown) && !player2.skillLock;
     }
     public boolean isTimeReverseReady1() {
+        if (player1.dead) return false;
         long now = System.currentTimeMillis();
         long pause = player1.pauseAccum;
         if (player2.timeStopActive || player2.timeReverseActive) pause += now - player1.pauseStart;
         return !player1.timeReverseActive && (now - player1.timeReverseCooldownStart - pause >= skill1Cooldown) && !player1.skillLock;
     }
     public boolean isTimeReverseReady2() {
+        if (player2.dead) return false;
         long now = System.currentTimeMillis();
         long pause = player2.pauseAccum;
         if (player1.timeStopActive || player1.timeReverseActive) pause += now - player2.pauseStart;
@@ -490,40 +496,48 @@ public class GameModel {
 
     // --- Skill 5-8 ---
     public boolean isTheHandReady1() {
+        if (player1.dead) return false;
         long now = System.currentTimeMillis();
         return skill1Id == 5 && !showLaser1 && (now - laserCooldownStart1 >= 30000) && !player1.skillLock;
     }
     public boolean isTheHandReady2() {
+        if (player2.dead) return false;
         long now = System.currentTimeMillis();
         return skill2Id == 5 && !showLaser2 && (now - laserCooldownStart2 >= 30000) && !player2.skillLock;
     }
     public boolean isKingCrimsonReady1() {
+        if (player1.dead) return false;
         long now = System.currentTimeMillis();
         return skill1Id == 6 && !kingCrimsonActive1 && (now - kingCrimsonCooldownStart1 >= 25000) && !player1.skillLock;
     }
     public boolean isKingCrimsonReady2() {
+        if (player2.dead) return false;
         long now = System.currentTimeMillis();
         return skill2Id == 6 && !kingCrimsonActive2 && (now - kingCrimsonCooldownStart2 >= 25000) && !player2.skillLock;
     }
     public boolean isSilverChariotReady1() {
+        if (player1.dead) return false;
         if (skill1Id != 7) return false;
         if (player1.score < 200) return false;
         long now = System.currentTimeMillis();
         return !summon1.active && !summonLocked1 && (now - summonCooldownStart1 >= skill1Cooldown) && !player1.skillLock;
     }
     public boolean isSilverChariotReady2() {
+        if (player2.dead) return false;
         if (skill2Id != 7) return false;
         if (player2.score < 200) return false;
         long now = System.currentTimeMillis();
         return !summon2.active && !summonLocked2 && (now - summonCooldownStart2 >= skill2Cooldown) && !player2.skillLock;
     }
     public boolean isGoldExpReady1() {
+        if (player1.dead) return false;
         if (skill1Id != 8) return false;
         if (player1.score < 100) return false;
         long now = System.currentTimeMillis();
         return !goldExpActive1 && !goldExpLocked1 && (now - goldExpCooldownStart1 >= skill1Cooldown) && !player1.skillLock;
     }
     public boolean isGoldExpReady2() {
+        if (player2.dead) return false;
         if (skill2Id != 8) return false;
         if (player2.score < 100) return false;
         long now = System.currentTimeMillis();
