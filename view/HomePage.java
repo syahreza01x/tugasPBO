@@ -41,9 +41,12 @@ public class HomePage extends JPanel {
         void onPlay(List<Integer> playerIds, List<String> usernames, boolean specialMode);
     }
 
+    private PlayListener playListener;
+
     public HomePage(DatabaseManager db, JFrame parentFrame, PlayListener playListener) {
         this.db = db;
         this.parentFrame = parentFrame;
+        this.playListener = playListener;
 
         setLayout(new BorderLayout(20, 20));
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
@@ -219,105 +222,156 @@ public class HomePage extends JPanel {
 
         add(centerPanel, BorderLayout.CENTER);
 
-        // --- Button Action ---
-        registerButton.addActionListener(e -> {
-            showRegisterDialog();
-            tableModel.loadPlayers();
-            updateButtonState();
-            highScoreModel.loadHighScores();
-        });
-
-        editButton.addActionListener(e -> {
-            int idx = tableModel.getFirstSelectedIndex();
-            if (idx != -1) {
-                int playerId = tableModel.getPlayerId(idx);
-                String username = tableModel.getPlayerName(idx);
-                int skillId = tableModel.getPlayerSkillId(idx);
-                // Konfirmasi password sebelum edit
-                if (!verifyPassword(username)) {
-                    JOptionPane.showMessageDialog(this, "Password salah atau aksi dibatalkan!");
-                    return;
-                }
-                showEditDialog(playerId, username, skillId);
-                tableModel.loadPlayers();
-                updateButtonState();
-                highScoreModel.loadHighScores();
-            }
-        });
-
-        deleteButton.addActionListener(e -> {
-            List<Integer> selectedIdx = tableModel.getSelectedIndexes();
-            if (!selectedIdx.isEmpty()) {
-                // Konfirmasi password untuk username pertama yang dipilih
-                String username = tableModel.getPlayerName(selectedIdx.get(0));
-                if (!verifyPassword(username)) {
-                    JOptionPane.showMessageDialog(this, "Password salah atau aksi dibatalkan!");
-                    return;
-                }
-                int confirm = JOptionPane.showConfirmDialog(this, "Yakin ingin menghapus player terpilih?", "Hapus Player", JOptionPane.YES_NO_OPTION);
-                if (confirm == JOptionPane.YES_OPTION) {
-                    for (int idx : selectedIdx) {
-                        int playerId = tableModel.getPlayerId(idx);
-                        db.deletePlayer(playerId);
-                    }
-                    tableModel.loadPlayers();
-                    updateButtonState();
-                    highScoreModel.loadHighScores();
-                }
-            }
-        });
-
-        playButton.addActionListener(e -> {
-            // Urutkan player sesuai urutan ceklis (player 1 = ceklis pertama, player 2 = ceklis kedua)
-            List<Integer> checkedRows = tableModel.getSelectedIndexes(); // urutan sesuai waktu ceklis
-            List<Integer> ids = new ArrayList<>();
-            List<String> names = new ArrayList<>();
-            for (int idx : checkedRows) {
-                ids.add(tableModel.getPlayerId(idx));
-                names.add(tableModel.getPlayerName(idx));
-            }
-            // Jika solo, tampilkan pilihan mode
-            if (ids.size() == 1) {
-                String[] mode = {"Normal Mode", "Special Mode"};
-                int modeChoice = JOptionPane.showOptionDialog(this, "Pilih Mode:", "Mode",
-                        JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, mode, mode[0]);
-                playListener.onPlay(ids, names, modeChoice == 1); // true jika special mode
-            } else {
-                playListener.onPlay(ids, names, false);
-            }
-        });
-
-        // --- Setting Kontrol ---
-        controlButton.addActionListener(e -> showControlSettingDialog());
-
         tableModel.loadPlayers();
         highScoreModel.loadHighScores();
     }
 
-    private void styleButton(JButton btn) {
-        btn.setPreferredSize(new Dimension(100, 30));
-        btn.setBackground(blueAccent);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
-        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    // --- Getter untuk Controller ---
+    public JButton getRegisterButton() { return registerButton; }
+    public JButton getEditButton() { return editButton; }
+    public JButton getDeleteButton() { return deleteButton; }
+    public JButton getPlayButton() { return playButton; }
+    public JButton getControlButton() { return controlButton; }
+    public PlayerTableModel getTableModel() { return tableModel; }
+    public HighScoreTableModel getHighScoreModel() { return highScoreModel; }
+
+    public void showRegisterDialog() {
+        JTextField usernameField = new JTextField();
+        JPasswordField passwordField = new JPasswordField();
+        JComboBox<String> skillBox = new JComboBox<>();
+        var skills = db.getAllSkills();
+        for (var s : skills) skillBox.addItem(s.namaSkill);
+
+        usernameField.setBackground(bgPanel);
+        usernameField.setForeground(textColor);
+        usernameField.setCaretColor(textColor);
+        usernameField.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
+
+        passwordField.setBackground(bgPanel);
+        passwordField.setForeground(textColor);
+        passwordField.setCaretColor(textColor);
+        passwordField.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
+
+        skillBox.setBackground(bgPanel);
+        skillBox.setForeground(textColor);
+
+        JPanel panel = new JPanel(new GridLayout(0, 1));
+        panel.setBackground(bgPanel);
+        JLabel l1 = new JLabel("Username:");
+        JLabel l2 = new JLabel("Password:");
+        JLabel l3 = new JLabel("Skill:");
+        l1.setForeground(textColor);
+        l2.setForeground(textColor);
+        l3.setForeground(textColor);
+        panel.add(l1);
+        panel.add(usernameField);
+        panel.add(l2);
+        panel.add(passwordField);
+        panel.add(l3);
+        panel.add(skillBox);
+
+        UIManager.put("OptionPane.background", bgPanel);
+        UIManager.put("Panel.background", bgPanel);
+        UIManager.put("OptionPane.messageForeground", textColor);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Register Player", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result == JOptionPane.OK_OPTION) {
+            String username = usernameField.getText().trim();
+            String password = new String(passwordField.getPassword());
+            if (username.isEmpty() || password.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Username dan password wajib diisi!");
+                return;
+            }
+            if (db.isUsernameExist(username)) {
+                JOptionPane.showMessageDialog(this, "Username sudah terdaftar!");
+                return;
+            }
+            int skillId = db.getAllSkills().get(skillBox.getSelectedIndex()).id;
+            db.registerPlayer(username, password, skillId);
+        }
     }
 
-    private void updateButtonState() {
-        int selected = tableModel.getSelectedCount();
-        playButton.setEnabled(selected >= 1 && selected <= 2);
-        editButton.setEnabled(selected == 1);
-        deleteButton.setEnabled(selected == 1);
+    public void showEditDialog(int playerId, String oldUsername, int oldSkillId) {
+        JTextField usernameField = new JTextField(oldUsername);
+        JComboBox<String> skillBox = new JComboBox<>();
+        var skills = db.getAllSkills();
+        int selectedSkillIdx = 0;
+        for (int i = 0; i < skills.size(); i++) {
+            skillBox.addItem(skills.get(i).namaSkill);
+            if (skills.get(i).id == oldSkillId) selectedSkillIdx = i;
+        }
+        skillBox.setSelectedIndex(selectedSkillIdx);
+
+        usernameField.setBackground(bgPanel);
+        usernameField.setForeground(textColor);
+        usernameField.setCaretColor(textColor);
+        usernameField.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
+
+        skillBox.setBackground(bgPanel);
+        skillBox.setForeground(textColor);
+
+        JPanel panel = new JPanel(new GridLayout(0, 1));
+        panel.setBackground(bgPanel);
+        JLabel l1 = new JLabel("Username:");
+        JLabel l2 = new JLabel("Skill:");
+        l1.setForeground(textColor);
+        l2.setForeground(textColor);
+        panel.add(l1);
+        panel.add(usernameField);
+        panel.add(l2);
+        panel.add(skillBox);
+
+        UIManager.put("OptionPane.background", bgPanel);
+        UIManager.put("Panel.background", bgPanel);
+        UIManager.put("OptionPane.messageForeground", textColor);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Edit Player", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result == JOptionPane.OK_OPTION) {
+            String username = usernameField.getText().trim();
+            int skillId = skills.get(skillBox.getSelectedIndex()).id;
+            if (username.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Username wajib diisi!");
+                return;
+            }
+            if (!username.equals(oldUsername) && db.isUsernameExist(username)) {
+                JOptionPane.showMessageDialog(this, "Username sudah terdaftar!");
+                return;
+            }
+            db.updatePlayer(playerId, username, skillId);
+        }
     }
 
-    private void showControlSettingDialog() {
+    public boolean verifyPassword(String username) {
+        JPasswordField passwordField = new JPasswordField();
+        passwordField.setBackground(bgPanel);
+        passwordField.setForeground(textColor);
+        passwordField.setCaretColor(textColor);
+        passwordField.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
+        JPanel panel = new JPanel(new GridLayout(0, 1));
+        panel.setBackground(bgPanel);
+        JLabel l1 = new JLabel("Masukkan password untuk " + username + ":");
+        l1.setForeground(textColor);
+        panel.add(l1);
+        panel.add(passwordField);
+
+        UIManager.put("OptionPane.background", bgPanel);
+        UIManager.put("Panel.background", bgPanel);
+        UIManager.put("OptionPane.messageForeground", textColor);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Konfirmasi Password", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result == JOptionPane.OK_OPTION) {
+            String password = new String(passwordField.getPassword());
+            return db.isPasswordValid(username, password);
+        }
+        return false;
+    }
+
+    public void showControlSettingDialog() {
         Properties props = new Properties();
         try (FileInputStream in = new FileInputStream("controls.properties")) {
             props.load(in);
         } catch (Exception ignored) {}
 
-        // Default values
         String p1Up = props.getProperty("p1.up", "W");
         String p1Down = props.getProperty("p1.down", "S");
         String p1Left = props.getProperty("p1.left", "A");
@@ -330,7 +384,6 @@ public class HomePage extends JPanel {
         String p2Right = props.getProperty("p2.right", "RIGHT");
         String p2Skill = props.getProperty("p2.skill", "END");
 
-        // Field setup
         JTextField p1UpField = new JTextField(p1Up);
         JTextField p1DownField = new JTextField(p1Down);
         JTextField p1LeftField = new JTextField(p1Left);
@@ -352,7 +405,6 @@ public class HomePage extends JPanel {
             f.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
         }
 
-        // Panel Player 1
         JPanel panelP1 = new JPanel(new GridLayout(6, 2, 6, 4));
         panelP1.setBackground(bgPanel);
         panelP1.add(new JLabel("Player 1", SwingConstants.CENTER) {{
@@ -360,7 +412,7 @@ public class HomePage extends JPanel {
             setFont(getFont().deriveFont(Font.BOLD));
             setHorizontalAlignment(SwingConstants.CENTER);
         }});
-        panelP1.add(new JLabel()); // Kosong biar rapi
+        panelP1.add(new JLabel());
         panelP1.add(new JLabel("Up:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
         panelP1.add(p1UpField);
         panelP1.add(new JLabel("Down:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
@@ -372,7 +424,6 @@ public class HomePage extends JPanel {
         panelP1.add(new JLabel("Skill:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
         panelP1.add(p1SkillField);
 
-        // Panel Player 2
         JPanel panelP2 = new JPanel(new GridLayout(6, 2, 6, 4));
         panelP2.setBackground(bgPanel);
         panelP2.add(new JLabel("Player 2", SwingConstants.CENTER) {{
@@ -392,7 +443,6 @@ public class HomePage extends JPanel {
         panelP2.add(new JLabel("Skill:", SwingConstants.RIGHT) {{ setForeground(textColor); }});
         panelP2.add(p2SkillField);
 
-        // Panel utama 2 kolom
         JPanel panelUtama = new JPanel(new GridLayout(1, 2, 20, 0));
         panelUtama.setBackground(bgPanel);
         panelUtama.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -425,154 +475,52 @@ public class HomePage extends JPanel {
         }
     }
 
-    private void showRegisterDialog() {
-        JTextField usernameField = new JTextField();
-        JPasswordField passwordField = new JPasswordField();
-        JComboBox<String> skillBox = new JComboBox<>();
-        var skills = db.getAllSkills();
-        for (var s : skills) skillBox.addItem(s.namaSkill);
-
-        // Set warna dark untuk semua komponen
-        usernameField.setBackground(bgPanel);
-        usernameField.setForeground(textColor);
-        usernameField.setCaretColor(textColor);
-        usernameField.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
-
-        passwordField.setBackground(bgPanel);
-        passwordField.setForeground(textColor);
-        passwordField.setCaretColor(textColor);
-        passwordField.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
-
-        skillBox.setBackground(bgPanel);
-        skillBox.setForeground(textColor);
-
-        JPanel panel = new JPanel(new GridLayout(0, 1));
-        panel.setBackground(bgPanel);
-        JLabel l1 = new JLabel("Username:");
-        JLabel l2 = new JLabel("Password:");
-        JLabel l3 = new JLabel("Skill:");
-        l1.setForeground(textColor);
-        l2.setForeground(textColor);
-        l3.setForeground(textColor);
-        panel.add(l1);
-        panel.add(usernameField);
-        panel.add(l2);
-        panel.add(passwordField);
-        panel.add(l3);
-        panel.add(skillBox);
-
-        // Set JOptionPane dark
-        UIManager.put("OptionPane.background", bgPanel);
-        UIManager.put("Panel.background", bgPanel);
-        UIManager.put("OptionPane.messageForeground", textColor);
-
-        int result = JOptionPane.showConfirmDialog(this, panel, "Register Player", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (result == JOptionPane.OK_OPTION) {
-            String username = usernameField.getText().trim();
-            String password = new String(passwordField.getPassword());
-            if (username.isEmpty() || password.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Username dan password wajib diisi!");
-                return;
-            }
-            if (db.isUsernameExist(username)) {
-                JOptionPane.showMessageDialog(this, "Username sudah terdaftar!");
-                return;
-            }
-            int skillId = db.getAllSkills().get(skillBox.getSelectedIndex()).id;
-            db.registerPlayer(username, password, skillId);
+    public void handlePlayAction() {
+        List<Integer> checkedRows = tableModel.getSelectedIndexes();
+        List<Integer> ids = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        for (int idx : checkedRows) {
+            ids.add(tableModel.getPlayerId(idx));
+            names.add(tableModel.getPlayerName(idx));
+        }
+        if (ids.size() == 1) {
+            String[] mode = {"Normal Mode", "Special Mode"};
+            int modeChoice = JOptionPane.showOptionDialog(this, "Pilih Mode:", "Mode",
+                    JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, mode, mode[0]);
+            playListener.onPlay(ids, names, modeChoice == 1);
+        } else {
+            playListener.onPlay(ids, names, false);
         }
     }
 
-    private void showEditDialog(int playerId, String oldUsername, int oldSkillId) {
-        JTextField usernameField = new JTextField(oldUsername);
-        JComboBox<String> skillBox = new JComboBox<>();
-        var skills = db.getAllSkills();
-        int selectedSkillIdx = 0;
-        for (int i = 0; i < skills.size(); i++) {
-            skillBox.addItem(skills.get(i).namaSkill);
-            if (skills.get(i).id == oldSkillId) selectedSkillIdx = i;
-        }
-        skillBox.setSelectedIndex(selectedSkillIdx);
-
-        // Set warna dark untuk semua komponen
-        usernameField.setBackground(bgPanel);
-        usernameField.setForeground(textColor);
-        usernameField.setCaretColor(textColor);
-        usernameField.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
-
-        skillBox.setBackground(bgPanel);
-        skillBox.setForeground(textColor);
-
-        JPanel panel = new JPanel(new GridLayout(0, 1));
-        panel.setBackground(bgPanel);
-        JLabel l1 = new JLabel("Username:");
-        JLabel l2 = new JLabel("Skill:");
-        l1.setForeground(textColor);
-        l2.setForeground(textColor);
-        panel.add(l1);
-        panel.add(usernameField);
-        panel.add(l2);
-        panel.add(skillBox);
-
-        // Set JOptionPane dark
-        UIManager.put("OptionPane.background", bgPanel);
-        UIManager.put("Panel.background", bgPanel);
-        UIManager.put("OptionPane.messageForeground", textColor);
-
-        int result = JOptionPane.showConfirmDialog(this, panel, "Edit Player", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (result == JOptionPane.OK_OPTION) {
-            String username = usernameField.getText().trim();
-            int skillId = skills.get(skillBox.getSelectedIndex()).id;
-            if (username.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Username wajib diisi!");
-                return;
-            }
-            if (!username.equals(oldUsername) && db.isUsernameExist(username)) {
-                JOptionPane.showMessageDialog(this, "Username sudah terdaftar!");
-                return;
-            }
-            db.updatePlayer(playerId, username, skillId);
-        }
+    public void styleButton(JButton btn) {
+        btn.setPreferredSize(new Dimension(100, 30));
+        btn.setBackground(blueAccent);
+        btn.setForeground(Color.WHITE);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
-    // Konfirmasi password sebelum edit/delete
-    private boolean verifyPassword(String username) {
-        JPasswordField passwordField = new JPasswordField();
-        passwordField.setBackground(bgPanel);
-        passwordField.setForeground(textColor);
-        passwordField.setCaretColor(textColor);
-        passwordField.setBorder(BorderFactory.createLineBorder(blueAccent, 1));
-        JPanel panel = new JPanel(new GridLayout(0, 1));
-        panel.setBackground(bgPanel);
-        JLabel l1 = new JLabel("Masukkan password untuk " + username + ":");
-        l1.setForeground(textColor);
-        panel.add(l1);
-        panel.add(passwordField);
-
-        UIManager.put("OptionPane.background", bgPanel);
-        UIManager.put("Panel.background", bgPanel);
-        UIManager.put("OptionPane.messageForeground", textColor);
-
-        int result = JOptionPane.showConfirmDialog(this, panel, "Konfirmasi Password", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (result == JOptionPane.OK_OPTION) {
-            String password = new String(passwordField.getPassword());
-            return db.isPasswordValid(username, password);
-        }
-        return false;
+    public void updateButtonState() {
+        int selected = tableModel.getSelectedCount();
+        playButton.setEnabled(selected >= 1 && selected <= 2);
+        editButton.setEnabled(selected == 1);
+        deleteButton.setEnabled(selected == 1);
     }
 
-    // Method untuk refresh high score dari luar (misal setelah game selesai)
     public void refreshHighScore() {
         highScoreModel.loadHighScores();
     }
 
     // --- Table Model ---
-    class PlayerTableModel extends AbstractTableModel {
+    public class PlayerTableModel extends AbstractTableModel {
         private final String[] columns = {"No", "Player", "Skill", "Pilih"};
         private final List<Player> playerList = new ArrayList<>();
         private final List<String> skillNames = new ArrayList<>();
         private final List<Boolean> selected = new ArrayList<>();
-        private final List<Integer> checkedOrder = new ArrayList<>(); // urutan ceklis
+        private final List<Integer> checkedOrder = new ArrayList<>();
 
         public void loadPlayers() {
             playerList.clear();
@@ -631,14 +579,12 @@ public class HomePage extends JPanel {
         }
     }
 
-    // --- High Score Table Model ---
-    class HighScoreTableModel extends AbstractTableModel {
+    public class HighScoreTableModel extends AbstractTableModel {
         private final String[] columns = {"No", "Player", "Score"};
         private final List<Object[]> data = new ArrayList<>();
 
         public void loadHighScores() {
             data.clear();
-            // Ambil top 5 high score dari database
             List<Map<String, Object>> hs = db.getTop5HighScores();
             int no = 1;
             for (Map<String, Object> row : hs) {

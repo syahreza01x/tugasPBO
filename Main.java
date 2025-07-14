@@ -3,6 +3,7 @@ import model.DatabaseManager;
 import view.GameView;
 import view.HomePage;
 import controller.GameController;
+import controller.HomePageController;
 import javax.swing.*;
 import java.awt.event.KeyEvent;
 import java.util.Properties;
@@ -92,6 +93,8 @@ public class Main {
                 JOptionPane.showMessageDialog(frame, "Terjadi error: " + ex.getMessage());
             }
         });
+
+        new HomePageController(home[0], db); // Penting agar tombol HomePage aktif
 
         frame.setContentPane(home[0]);
         frame.setVisible(true);
