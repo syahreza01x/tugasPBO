@@ -72,14 +72,16 @@ public class DatabaseManager {
             st.executeUpdate("CREATE TABLE IF NOT EXISTS powerups_log (" +
                     "id INT NOT NULL AUTO_INCREMENT PRIMARY KEY," +
                     "player_id INT DEFAULT NULL," +
-                    "powerup_type VARCHAR(50) DEFAULT NULL," +
+                    "powerup_type INT DEFAULT NULL," +
                     "collected_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP," +
                     "powerup_id INT DEFAULT NULL," +
                     "KEY player_id (player_id)," +
                     "KEY fk_powerup (powerup_id)," +
+                    "KEY fk_powerup_type (powerup_type)," +
                     "CONSTRAINT fk_powerup FOREIGN KEY (powerup_id) REFERENCES powerup(id)," +
+                    "CONSTRAINT fk_powerup_type FOREIGN KEY (powerup_type) REFERENCES powerup(id)," +
                     "CONSTRAINT powerups_log_ibfk_1 FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE" +
-                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+                ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
 
             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM skills");
             if (rs.next() && rs.getInt(1) == 0) {
