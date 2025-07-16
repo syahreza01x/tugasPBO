@@ -62,6 +62,15 @@ public class HomePage extends JPanel {
         tableModel = new PlayerTableModel();
         table = new JTable(tableModel);
 
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            if (i != 3) { 
+                table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+            }
+        }
+
         table.getColumnModel().getColumn(0).setMaxWidth(50);
         table.getColumnModel().getColumn(3).setMaxWidth(60);
         table.setRowHeight(32);
@@ -175,9 +184,16 @@ public class HomePage extends JPanel {
         leftPanel.add(scrollPane, BorderLayout.CENTER);
         leftPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-        // --- KANAN: Top 5 High Score ---
         highScoreModel = new HighScoreTableModel();
         highScoreTable = new JTable(highScoreModel);
+
+        DefaultTableCellRenderer hsCenterRenderer = new DefaultTableCellRenderer();
+        hsCenterRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+
+        for (int i = 0; i < highScoreTable.getColumnCount(); i++) {
+            highScoreTable.getColumnModel().getColumn(i).setCellRenderer(hsCenterRenderer);
+        }
+
         highScoreTable.setRowHeight(28);
         highScoreTable.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         highScoreTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 14));
